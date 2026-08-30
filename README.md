@@ -27,8 +27,9 @@ clicar na tela uma vez para começar a jogar.
   própria e pulo permitido apenas quando está no chão.
 - Câmera controlada pelo mouse: o giro horizontal roda o corpo, o vertical roda só a câmera,
   com a inclinação presa entre -89° e +89°.
-- Ilha de aproximadamente 1,3 km de ponta a ponta, montada sobre uma grade de módulos de
-  100x100 metros: praia na borda, planícies e colinas no meio, montanhas e picos no miolo.
+- Ilha de aproximadamente 1,3 km de ponta a ponta, com costa orgânica contínua e um miolo
+  modular de 100x100 metros: grandes planícies, colinas esparsas e uma cadeia montanhosa
+  curta com alturas variadas.
 - Mar em volta, ilhotas ao largo, montanhas isoladas e rochas espalhadas como pontos de
   referência.
 - Colisão em todo o terreno e paredes invisíveis na linha de costa, para o personagem não
@@ -90,9 +91,14 @@ navegador.
 
 Os módulos Grid grandes têm todos exatamente 100x100 metros de pegada e as **quatro bordas
 na altura zero**, então encaixam entre si em qualquer combinação e em qualquer rotação
-múltipla de 90°. O gerador (`scripts/world/gerador_da_ilha.gd`) desenha um disco de raio
-irregular sobre essa grade e escolhe o módulo de cada célula pela faixa de relevo em que ela
-cai. A mesma semente sempre produz a mesma ilha.
+múltipla de 90°. O gerador (`scripts/world/gerador_da_ilha.gd`) concentra o relevo forte
+numa cadeia curta no miolo, preserva planícies amplas e deforma os vértices de todos os
+módulos com uma altura global contínua: a costa fica no nível do mar e o interior sobe até
+cerca de 22 metros antes dos relevos locais. A colisão é reconstruída com essa mesma forma.
+Um material em coordenadas globais atravessa as peças sem repetir uma textura por célula.
+Uma malha costeira procedural contínua envolve a grade, mistura o verde com a areia,
+mergulha suavemente no mar e elimina a silhueta quadrada. A mesma semente sempre produz a
+mesma ilha.
 
 Para expandir o mapa depois basta mexer nos parâmetros exportados do nó `Ilha`
 (raio, semente, irregularidade da costa, quantidade de detalhes) ou acrescentar nomes de
