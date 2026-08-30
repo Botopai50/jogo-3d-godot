@@ -54,6 +54,34 @@ func rodar() -> void:
 	print("  nascimento:         %s" % str(ilha.posicao_de_nascimento()))
 	checar(modulos > 60, "a ilha tem modulos suficientes", "(%d)" % modulos)
 	checar(limite.get_child_count() > 20, "a costa esta cercada por limites", "(%d)" % limite.get_child_count())
+	checar(ilha.has_node("CostaOrganica"), "a costa organica foi gerada")
+	checar(limite.get_child_count() == ilha.segmentos_da_costa,
+		"o limite fisico acompanha o contorno organico", "(%d segmentos)" % limite.get_child_count())
+
+	var planicies := 0
+	var relevos_altos := 0
+	for modulo in terreno.get_children():
+		var nome: String = modulo.name
+		if nome.begins_with("planicie"):
+			planicies += 1
+		if nome.begins_with("montanha") or nome.begins_with("pico"):
+			relevos_altos += 1
+	print("  planicies:          %d | montanhas/picos: %d" % [planicies, relevos_altos])
+	var altura_do_miolo: float = ilha._altura_macro_do_terreno(0.0, 0.0)
+	var altura_da_costa: float = ilha._altura_macro_do_terreno(0.0, ilha.raio_em_metros() * 0.85)
+	print("  altura macro:       miolo %.2f m | costa %.2f m" % [altura_do_miolo, altura_da_costa])
+	checar(planicies > relevos_altos * 2, "as planicies predominam sobre relevos altos")
+	checar(altura_do_miolo - altura_da_costa > 15.0, "o terreno base tem alturas variadas")
+
+	var props_sem_material := 0
+	var nos_de_detalhe: Array = [ilha.get_node("Detalhes")]
+	while not nos_de_detalhe.is_empty():
+		var detalhe: Node = nos_de_detalhe.pop_back()
+		for filho in detalhe.get_children():
+			nos_de_detalhe.append(filho)
+		if detalhe is MeshInstance3D and (detalhe as MeshInstance3D).material_override == null:
+			props_sem_material += 1
+	checar(props_sem_material == 0, "montanhas e rochas usam o material continuo")
 
 	print("--- assentar no chao ---")
 	await avancar(90)
