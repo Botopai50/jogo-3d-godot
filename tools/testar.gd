@@ -52,7 +52,8 @@ func rodar() -> void:
 	print("  paredes de limite:  %d" % limite.get_child_count())
 	print("  triangulos na cena: %d" % triangulos)
 	print("  nascimento:         %s" % str(ilha.posicao_de_nascimento()))
-	checar(modulos > 60, "a ilha tem modulos suficientes", "(%d)" % modulos)
+	var minimo_de_modulos: int = ilha.raio_em_modulos * ilha.raio_em_modulos
+	checar(modulos > minimo_de_modulos, "a ilha tem modulos suficientes", "(%d)" % modulos)
 	checar(limite.get_child_count() > 20, "a costa esta cercada por limites", "(%d)" % limite.get_child_count())
 	checar(ilha.has_node("CostaOrganica"), "a costa organica foi gerada")
 	checar(limite.get_child_count() == ilha.segmentos_da_costa,

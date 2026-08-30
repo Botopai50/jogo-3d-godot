@@ -17,6 +17,7 @@ const PASTA_TERRENO := "res://scenes/modules/terrain/"
 const PASTA_PROPS := "res://scenes/modules/props/"
 const PASTA_ILHOTAS := "res://scenes/modules/islets/"
 const SHADER_TERRENO_CONTINUO := preload("res://shaders/terreno_continuo.gdshader")
+const SHADER_COSTA_ORGANICA := preload("res://shaders/costa_organica.gdshader")
 
 ## Modulos por faixa de relevo, do centro para a borda.
 ##
@@ -47,21 +48,35 @@ const ILHOTAS := ["CPT_Island_S_c_01", "CPT_Island_S_c_02", "CPT_Island_S_c_03",
 
 @export_group("Formato da ilha")
 ## Raio medio da ilha, contado em modulos de 100x100.
-@export_range(2, 20, 1) var raio_em_modulos := 6
-## Lado de cada modulo, em metros. Os modulos Grid grandes tem 100.
-@export var tamanho_do_modulo := 100.0
+@export_range(2, 20, 1) var raio_em_modulos := 4
+## Distancia entre os centros das celulas, em metros. Os assets originais tem
+## 100 m; valores maiores ampliam malha e colisao para manter o encaixe.
+@export_range(60.0, 300.0, 5.0) var tamanho_do_modulo := 250.0
 ## Quanto a linha de costa foge do circulo perfeito (0 = circulo).
 @export_range(0.0, 0.5, 0.01) var irregularidade_da_costa := 0.18
 ## Mesma semente sempre gera exatamente a mesma ilha.
 @export var semente := 20260830
 ## Largura aproximada da faixa costeira organica que aparece alem dos modulos.
-@export_range(20.0, 160.0, 5.0) var largura_da_costa := 55.0
+@export_range(20.0, 200.0, 5.0) var largura_da_costa := 110.0
 ## Quantidade de lados da silhueta costeira. Valores altos deixam a curva suave.
 @export_range(32, 192, 8) var segmentos_da_costa := 96
 ## Quanto a beirada da praia mergulha sob o nivel do mar.
 @export_range(0.1, 3.0, 0.05) var profundidade_da_beirada := 0.8
 
+@export_group("Altura procedural")
+## Altura do domo central que sustenta a massa principal da ilha.
+@export_range(0.0, 50.0, 1.0) var altura_base_do_miolo := 18.0
+## Intensidade de vales e elevacoes grandes gerados pela semente.
+@export_range(0.0, 40.0, 1.0) var variacao_ampla_da_altura := 16.0
+## Intensidade das ondulacoes menores sobre o relevo amplo.
+@export_range(0.0, 20.0, 0.5) var variacao_fina_da_altura := 5.0
+
 @export_group("Detalhes")
+## Multiplica apenas a altura dos modulos acidentados. A largura continua em
+## 100 m para preservar o encaixe perfeito do grid.
+@export_range(0.5, 4.0, 0.1) var escala_do_relevo := 1.0
+## Escala uniforme das grandes montanhas usadas como pontos de referencia.
+@export_range(0.5, 5.0, 0.1) var escala_dos_marcos := 1.0
 ## Quantas montanhas isoladas colocar sobre celulas planas.
 @export_range(0, 8, 1) var quantidade_de_marcos := 1
 ## Quantas rochas menores espalhar.
@@ -76,6 +91,8 @@ var _celulas: Dictionary = {}
 var _celula_de_nascimento := Vector2i.ZERO
 var _aleatorio := RandomNumberGenerator.new()
 var _material_terreno_continuo: ShaderMaterial
+var _ruido_de_altura_amplo := FastNoiseLite.new()
+var _ruido_de_altura_fino := FastNoiseLite.new()
 
 
 func _ready() -> void:
@@ -90,6 +107,7 @@ func gerar() -> void:
 	_cache.clear()
 	_celulas.clear()
 	_aleatorio.seed = semente
+	_configurar_ruido_de_altura()
 
 	_marcar_terra()
 	var raiz_terreno := _novo_grupo("Terreno")
@@ -142,27 +160,40 @@ func _material_do_terreno() -> ShaderMaterial:
 	return _material_terreno_continuo
 
 
+func _configurar_ruido_de_altura() -> void:
+	_ruido_de_altura_amplo.seed = semente
+	_ruido_de_altura_amplo.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	_ruido_de_altura_amplo.frequency = 0.0018
+	_ruido_de_altura_amplo.fractal_type = FastNoiseLite.FRACTAL_FBM
+	_ruido_de_altura_amplo.fractal_octaves = 4
+	_ruido_de_altura_amplo.fractal_gain = 0.52
+
+	_ruido_de_altura_fino.seed = semente + 7919
+	_ruido_de_altura_fino.noise_type = FastNoiseLite.TYPE_SIMPLEX_SMOOTH
+	_ruido_de_altura_fino.frequency = 0.007
+	_ruido_de_altura_fino.fractal_type = FastNoiseLite.FRACTAL_FBM
+	_ruido_de_altura_fino.fractal_octaves = 3
+	_ruido_de_altura_fino.fractal_gain = 0.45
+
+
 ## Altura de grande escala compartilhada por todos os modulos. Ela zera antes
 ## da praia, mas ergue e ondula o interior da ilha. Como a funcao depende da
 ## posicao global, dois vertices coincidentes recebem exatamente a mesma altura
 ## mesmo quando pertencem a cenas diferentes.
 func _altura_macro_do_terreno(x: float, z: float) -> float:
 	var ponto := Vector2(x, z)
-	if ponto.is_zero_approx():
-		return 22.0
 	var raio := _raio_na_direcao(ponto.x, ponto.y) * tamanho_do_modulo
 	var distancia_normalizada := ponto.length() / maxf(raio, 1.0)
-	var influencia := 1.0 - smoothstep(0.50, 0.72, distancia_normalizada)
+	var influencia := 1.0 - smoothstep(0.48, 0.78, distancia_normalizada)
 	if influencia <= 0.0:
 		return 0.0
 
-	var domo := pow(maxf(1.0 - distancia_normalizada, 0.0), 1.5) * 22.0
-	var ondas := (
-		sin(x * 0.007 + z * 0.002 + 0.8)
-		+ sin(z * 0.009 - x * 0.001 - 1.1)
-		+ sin((x - z) * 0.005 + 2.0)
-	) * 2.0
-	return maxf((domo + ondas) * influencia, 0.0)
+	var domo := pow(maxf(1.0 - distancia_normalizada, 0.0), 1.35) * altura_base_do_miolo
+	var ruido_amplo := _ruido_de_altura_amplo.get_noise_2d(x, z) * variacao_ampla_da_altura
+	var ruido_fino := _ruido_de_altura_fino.get_noise_2d(x, z) * variacao_fina_da_altura
+	# A base baixa permite vales sem abrir buracos ou lagos acidentais.
+	var altura := domo + 5.0 + ruido_amplo + ruido_fino
+	return maxf(altura * influencia, 0.0)
 
 
 ## Incorpora a escala vertical e a altura macro aos vertices de uma instancia
@@ -176,7 +207,13 @@ func _deformar_modulo(modulo: Node3D, escala_vertical: float) -> void:
 
 	var origem := visual.mesh
 	var transformacao_original := visual.transform
-	var base_deformada := Basis.IDENTITY.scaled(Vector3(1.0, escala_vertical, 1.0)) * transformacao_original.basis
+	var escala_horizontal := tamanho_do_modulo / 100.0
+	# A escala horizontal dos modulos nao deve multiplicar a altura: isso deixa
+	# os relevos estreitos e pontudos demais. A altura continua independente.
+	var escala_vertical_final := escala_vertical
+	var base_deformada := Basis.IDENTITY.scaled(
+		Vector3(escala_horizontal, escala_vertical_final, escala_horizontal)
+	) * transformacao_original.basis
 	var transformacao_da_normal := base_deformada.inverse().transposed()
 	var malha_deformada := ArrayMesh.new()
 
@@ -187,7 +224,9 @@ func _deformar_modulo(modulo: Node3D, escala_vertical: float) -> void:
 
 		for indice in range(vertices.size()):
 			var vertice := transformacao_original * vertices[indice]
-			vertice.y *= escala_vertical
+			vertice.x *= escala_horizontal
+			vertice.y *= escala_vertical_final
+			vertice.z *= escala_horizontal
 			var ponto_na_ilha := modulo.transform * vertice
 			vertice.y += _altura_macro_do_terreno(ponto_na_ilha.x, ponto_na_ilha.z)
 			vertices[indice] = vertice
@@ -308,19 +347,21 @@ func _faixa_da_celula(gx: int, gz: int) -> String:
 func _escala_vertical(faixa: String, gx: int, gz: int) -> float:
 	var intensidade := _intensidade_do_relevo(gx, gz)
 	var variacao := (_ruido(gx, gz, 120) - 0.5) * 0.12
+	var escala_base: float
 	match faixa:
 		"pico":
-			return 1.15 + intensidade * 0.55 + variacao
+			escala_base = 1.15 + intensidade * 0.55 + variacao
 		"montanha":
-			return 0.72 + intensidade * 0.62 + variacao
+			escala_base = 0.72 + intensidade * 0.62 + variacao
 		"morro":
-			return 0.48 + intensidade * 0.68 + variacao
+			escala_base = 0.48 + intensidade * 0.68 + variacao
 		"colina":
-			return 0.30 + intensidade * 0.72 + variacao
+			escala_base = 0.30 + intensidade * 0.72 + variacao
 		"rochedo":
-			return 0.48 + intensidade * 0.45 + variacao
+			escala_base = 0.48 + intensidade * 0.45 + variacao
 		_:
 			return 0.34 + variacao
+	return escala_base * escala_do_relevo
 
 
 func _montar_terreno(raiz: Node3D) -> void:
@@ -356,8 +397,10 @@ func _montar_base_organica() -> void:
 	var segmentos := maxi(segmentos_da_costa, 32)
 	# O tom interno acompanha a media do shader continuo para que a borda dos
 	# modulos desapareca visualmente sobre a base.
-	var cor_terreno := Color(0.28, 0.54, 0.26)
-	var cor_areia := Color(0.56, 0.50, 0.31)
+	# O alpha informa ao shader quanto misturar com areia: zero no miolo e um
+	# na beirada. A cor RGB fica disponivel para depuracao da malha.
+	var cor_terreno := Color(0.28, 0.54, 0.26, 0.0)
+	var cor_areia := Color(0.56, 0.50, 0.31, 1.0)
 
 	vertices.append(Vector3(0.0, -0.03, 0.0))
 	normais.append(Vector3.UP)
@@ -393,10 +436,8 @@ func _montar_base_organica() -> void:
 	arrays[Mesh.ARRAY_INDEX] = indices
 	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
 
-	var material := StandardMaterial3D.new()
-	material.albedo_color = Color.WHITE
-	material.vertex_color_use_as_albedo = true
-	material.roughness = 0.96
+	var material := ShaderMaterial.new()
+	material.shader = SHADER_COSTA_ORGANICA
 	malha.surface_set_material(0, material)
 
 	var corpo := StaticBody3D.new()
@@ -480,6 +521,7 @@ func _montar_marcos(raiz: Node3D) -> void:
 		marco.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
 		marco.position.y = _altura_macro_do_terreno(marco.position.x, marco.position.z)
 		marco.rotation.y = _ruido(celula.x, celula.y, 5) * TAU
+		marco.scale = Vector3.ONE * escala_dos_marcos * (tamanho_do_modulo / 100.0)
 		_aplicar_material_continuo(marco)
 		raiz.add_child(marco)
 		usadas += 1
@@ -504,7 +546,7 @@ func _montar_rochas(raiz: Node3D) -> void:
 		rocha.rotation.y = _ruido(celula.x, celula.y, 70 + i) * TAU
 		# Rochas maiores que o tamanho original: nas planicies de 100 m elas
 		# so viram ponto de referencia se derem para ver de longe.
-		var escala := 1.6 + _ruido(celula.x, celula.y, 90 + i) * 1.6
+		var escala := (1.6 + _ruido(celula.x, celula.y, 90 + i) * 1.6) * (tamanho_do_modulo / 100.0)
 		rocha.scale = Vector3(escala, escala, escala)
 		_aplicar_material_continuo(rocha)
 		raiz.add_child(rocha)
