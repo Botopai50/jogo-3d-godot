@@ -34,6 +34,11 @@ extends CharacterBody3D
 @export_range(-89.9, 0.0, 0.1) var angulo_vertical_minimo := -89.0
 ## Limite de quanto a camera pode olhar para cima, em graus.
 @export_range(0.0, 89.9, 0.1) var angulo_vertical_maximo := 89.0
+## Deslocamento maximo aceito de um unico evento de mouse, em pixels. Serve de
+## trava contra o salto que o navegador dispara ao travar o ponteiro.
+@export_range(20.0, 2000.0, 1.0) var salto_maximo_do_mouse := 200.0
+## Quanto tempo ignorar o mouse logo depois de capturar o ponteiro, em segundos.
+@export_range(0.0, 1.0, 0.01) var carencia_apos_capturar := 0.2
 
 @export_group("Seguranca")
 ## Abaixo desta altura o personagem volta ao ponto de partida.
@@ -43,6 +48,7 @@ extends CharacterBody3D
 
 var _transformada_inicial: Transform3D
 var _inclinacao := 0.0
+var _instante_da_captura := 0.0
 
 
 func _ready() -> void:
@@ -60,6 +66,7 @@ func definir_nascimento(posicao: Vector3) -> void:
 
 func capturar_mouse() -> void:
 	Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+	_instante_da_captura = Time.get_ticks_msec() / 1000.0
 
 
 func liberar_mouse() -> void:
@@ -88,7 +95,15 @@ func _unhandled_input(evento: InputEvent) -> void:
 ## Aplica um movimento de mouse a visao. Horizontal gira o corpo inteiro, para
 ## que o deslocamento acompanhe para onde se olha; vertical gira apenas a
 ## camera, com a inclinacao presa entre os limites configurados.
+##
+## Ao travar o ponteiro, o navegador dispara um evento de movimento com o
+## deslocamento acumulado ate ali, que pode valer meia tela e jogaria a visao
+## direto para o ceu no primeiro clique. Por isso o mouse fica ignorado por um
+## instante depois da captura e cada evento tem o deslocamento limitado.
 func olhar(movimento: Vector2) -> void:
+	if Time.get_ticks_msec() / 1000.0 - _instante_da_captura < carencia_apos_capturar:
+		return
+	movimento = movimento.clampf(-salto_maximo_do_mouse, salto_maximo_do_mouse)
 	rotate_y(-movimento.x * sensibilidade_do_mouse)
 	_inclinacao = clampf(
 		_inclinacao - movimento.y * sensibilidade_do_mouse,

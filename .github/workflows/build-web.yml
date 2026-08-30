@@ -1,0 +1,96 @@
+name: Build e publicacao Web
+
+on:
+  push:
+    branches:
+      - main
+      - claude/godot-3d-github-repo-lnlomz
+  pull_request:
+  workflow_dispatch:
+
+# Permissoes exigidas pelo deploy do GitHub Pages.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Uma publicacao por vez; nao cancela a que ja esta em andamento.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+env:
+  GODOT_VERSION: 4.7.2
+  GODOT_RELEASE: 4.7.2-stable
+
+jobs:
+  build:
+    name: Exportar para Web
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar o repositorio
+        uses: actions/checkout@v4
+
+      - name: Baixar o Godot e os templates de export
+        run: |
+          set -euo pipefail
+          base="https://github.com/godotengine/godot-builds/releases/download/${GODOT_RELEASE}"
+          curl -fsSL -o godot.zip "${base}/Godot_v${GODOT_RELEASE}_linux.x86_64.zip"
+          curl -fsSL -o templates.tpz "${base}/Godot_v${GODOT_RELEASE}_export_templates.tpz"
+          unzip -q godot.zip
+          sudo install -m 755 "Godot_v${GODOT_RELEASE}_linux.x86_64" /usr/local/bin/godot
+          unzip -q templates.tpz
+          mkdir -p "$HOME/.local/share/godot/export_templates"
+          mv templates "$HOME/.local/share/godot/export_templates/${GODOT_VERSION}.stable"
+          godot --headless --version
+
+      - name: Importar os assets
+        run: |
+          set -euo pipefail
+          # A primeira passada importa os recursos e monta o cache de classes
+          # globais; a segunda resolve os scripts que dependem desse cache.
+          godot --headless --path . --import
+          godot --headless --path . --import
+
+      - name: Rodar os testes do prototipo
+        run: godot --headless --path . --script tools/testar.gd
+
+      - name: Exportar o build Web
+        run: |
+          set -euo pipefail
+          mkdir -p build/web
+          godot --headless --path . --export-release "Web" build/web/index.html
+          # O GitHub Pages ignora arquivos e pastas iniciados por "_" sem isto.
+          touch build/web/.nojekyll
+          ls -la build/web
+
+      - name: Conferir os arquivos gerados
+        run: |
+          set -euo pipefail
+          for arquivo in index.html index.js index.wasm index.pck; do
+            test -s "build/web/$arquivo" || { echo "faltou build/web/$arquivo"; exit 1; }
+          done
+          echo "tamanho total: $(du -sh build/web | cut -f1)"
+
+      - name: Preparar o GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Enviar o artefato do Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: build/web
+
+  deploy:
+    name: Publicar no GitHub Pages
+    needs: build
+    if: github.event_name != 'pull_request'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.publicacao.outputs.page_url }}
+    steps:
+      - name: Publicar
+        id: publicacao
+        uses: actions/deploy-pages@v4
