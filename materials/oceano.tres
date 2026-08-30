@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://shaders/oceano.gdshader" id="1_r80e7"]
+
+[resource]
+resource_name = "Oceano"
+render_priority = 0
+shader = ExtResource("1_r80e7")
+shader_parameter/cor_rasa = null
+shader_parameter/cor_profunda = null
+shader_parameter/escala_das_ondas = null
+shader_parameter/velocidade_das_ondas = null
+shader_parameter/intensidade_da_normal = null
+shader_parameter/rugosidade = null

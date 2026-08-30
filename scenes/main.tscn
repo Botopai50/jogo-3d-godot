@@ -1,0 +1,76 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://scripts/world/mundo.gd" id="1_tefeu"]
+[ext_resource type="PackedScene" path="res://scenes/world/island/ilha.tscn" id="2_o6xl0"]
+[ext_resource type="Script" path="res://scripts/world/gerador_da_ilha.gd" id="3_tipki"]
+[ext_resource type="PackedScene" path="res://scenes/world/ocean/oceano.tscn" id="4_85g3d"]
+[ext_resource type="PackedScene" path="res://scenes/player/personagem.tscn" id="5_choun"]
+[ext_resource type="Script" path="res://scripts/player/personagem.gd" id="6_ya4ey"]
+
+[sub_resource type="ProceduralSkyMaterial" id="ProceduralSkyMaterial_eb6dy"]
+sky_top_color = Color(0.22, 0.45, 0.78, 1)
+sky_horizon_color = Color(0.72, 0.83, 0.9, 1)
+ground_bottom_color = Color(0.13, 0.22, 0.29, 1)
+ground_horizon_color = Color(0.72, 0.83, 0.9, 1)
+sun_angle_max = 12.0
+
+[sub_resource type="Sky" id="Sky_trceg"]
+sky_material = SubResource("ProceduralSkyMaterial_eb6dy")
+
+[sub_resource type="Environment" id="Environment_a8y0u"]
+background_mode = 2
+sky = SubResource("Sky_trceg")
+ambient_light_source = 3
+tonemap_mode = 2
+fog_enabled = true
+fog_light_color = Color(0.7, 0.81, 0.89, 1)
+fog_density = 0.0009
+fog_aerial_perspective = 0.3
+fog_sky_affect = 0.0
+
+[node name="Mundo" type="Node3D" unique_id=204120991]
+script = ExtResource("1_tefeu")
+
+[node name="Ambiente" type="WorldEnvironment" parent="." unique_id=1356574526]
+environment = SubResource("Environment_a8y0u")
+
+[node name="Sol" type="DirectionalLight3D" parent="." unique_id=2027589013]
+transform = Transform3D(-0.70710677, 0.5572077, -0.4353384, 0, 0.6156615, 0.7880107, 0.70710677, 0.5572077, -0.4353384, 0, 0, 0)
+light_color = Color(1, 0.97, 0.9, 1)
+light_energy = 1.1
+shadow_enabled = true
+shadow_bias = 0.06
+directional_shadow_mode = 1
+directional_shadow_max_distance = 260.0
+
+[node name="Ilha" type="Node3D" parent="." unique_id=1334372675 instance=ExtResource("2_o6xl0")]
+script = ExtResource("3_tipki")
+
+[node name="Oceano" type="Node3D" parent="." unique_id=528428943 instance=ExtResource("4_85g3d")]
+
+[node name="Personagem" type="CharacterBody3D" parent="." unique_id=977589049 instance=ExtResource("5_choun")]
+collision_layer = 2
+collision_mask = 5
+floor_max_angle = 0.87266463
+script = ExtResource("6_ya4ey")
+
+[node name="Interface" type="CanvasLayer" parent="." unique_id=533036329]
+
+[node name="Aviso" type="PanelContainer" parent="Interface" unique_id=1110096984]
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -300.0
+offset_top = -70.0
+offset_right = 300.0
+offset_bottom = -20.0
+mouse_filter = 2
+
+[node name="Texto" type="Label" parent="Interface/Aviso" unique_id=1725876808]
+layout_mode = 2
+text = "Clique para jogar
+WASD mover  |  Shift correr  |  Espaco pular  |  Esc liberar o mouse"
+horizontal_alignment = 1
+vertical_alignment = 1
