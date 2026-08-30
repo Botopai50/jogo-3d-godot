@@ -1,0 +1,48 @@
+# ---------------------------------------------------------------
+# Godot 4+ (especifico)
+# ---------------------------------------------------------------
+# Cache do editor e arquivos importados (regerados automaticamente)
+.godot/
+
+# Build gerado pelo template Android
+/android/
+
+# ---------------------------------------------------------------
+# Godot 3 / legado (mantido por seguranca)
+# ---------------------------------------------------------------
+.import/
+export.cfg
+
+# Traducoes geradas automaticamente a partir de arquivos CSV
+*.translation
+
+# ---------------------------------------------------------------
+# Export
+# ---------------------------------------------------------------
+# Observacao: export_presets.cfg NAO e ignorado de proposito.
+# Ele sera necessario para gerar o build Web via GitHub Actions (etapa 3).
+# Nunca guarde senhas/keystores nesse arquivo.
+
+# Saida de builds
+/builds/
+/build/
+*.pck
+*.zip
+
+# ---------------------------------------------------------------
+# .NET / Mono (nao usado neste projeto, mantido por seguranca)
+# ---------------------------------------------------------------
+.mono/
+data_*/
+mono_crash.*.json
+
+# ---------------------------------------------------------------
+# Sistema operacional e editores
+# ---------------------------------------------------------------
+.DS_Store
+Thumbs.db
+desktop.ini
+*~
+*.swp
+.vscode/
+.idea/
