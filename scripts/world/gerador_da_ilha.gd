@@ -56,9 +56,9 @@ const ILHOTAS := ["CPT_Island_S_c_01", "CPT_Island_S_c_02", "CPT_Island_S_c_03",
 
 @export_group("Detalhes")
 ## Quantas montanhas isoladas colocar sobre celulas planas.
-@export_range(0, 8, 1) var quantidade_de_marcos := 3
+@export_range(0, 8, 1) var quantidade_de_marcos := 4
 ## Quantas rochas menores espalhar.
-@export_range(0, 60, 1) var quantidade_de_rochas := 14
+@export_range(0, 80, 1) var quantidade_de_rochas := 26
 ## Quantas ilhotas fundear no mar.
 @export_range(0, 12, 1) var quantidade_de_ilhotas := 5
 ## Altura das paredes invisiveis que seguram o personagem na ilha.
@@ -175,16 +175,16 @@ func _faixa_da_celula(gx: int, gz: int) -> String:
 	if _e_borda(gx, gz):
 		return "praia"
 	var t: float = _celulas[Vector2i(gx, gz)] + (_ruido(gx, gz, 1) - 0.5) * 0.12
-	if t > 0.80:
-		return "praia" if _ruido(gx, gz, 2) < 0.35 else "planicie"
-	if t > 0.62:
-		return "planicie" if _ruido(gx, gz, 2) < 0.40 else "colina"
-	if t > 0.46:
-		return "colina" if _ruido(gx, gz, 6) < 0.85 else "rochedo"
-	if t > 0.30:
-		return "morro"
-	if t > 0.14:
-		return "montanha"
+	if t > 0.86:
+		return "praia" if _ruido(gx, gz, 2) < 0.45 else "planicie"
+	if t > 0.70:
+		return "planicie" if _ruido(gx, gz, 2) < 0.25 else "colina"
+	if t > 0.52:
+		return "colina" if _ruido(gx, gz, 6) < 0.80 else "morro"
+	if t > 0.34:
+		return "morro" if _ruido(gx, gz, 6) < 0.65 else "montanha"
+	if t > 0.16:
+		return "montanha" if _ruido(gx, gz, 6) < 0.80 else "rochedo"
 	return "pico"
 
 
@@ -247,7 +247,7 @@ func _celulas_planas() -> Array:
 		if celula == _celula_de_nascimento:
 			continue
 		var faixa := _faixa_da_celula(celula.x, celula.y)
-		if faixa == "planicie" or faixa == "praia":
+		if faixa == "planicie" or faixa == "praia" or faixa == "colina" or faixa == "rochedo":
 			planas.append(celula)
 	planas.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 		return a.y < b.y if a.y != b.y else a.x < b.x)
@@ -293,7 +293,9 @@ func _montar_rochas(raiz: Node3D) -> void:
 		)
 		rocha.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo) + desvio
 		rocha.rotation.y = _ruido(celula.x, celula.y, 70 + i) * TAU
-		var escala := 0.8 + _ruido(celula.x, celula.y, 90 + i) * 0.8
+		# Rochas maiores que o tamanho original: nas planicies de 100 m elas
+		# so viram ponto de referencia se derem para ver de longe.
+		var escala := 1.6 + _ruido(celula.x, celula.y, 90 + i) * 1.6
 		rocha.scale = Vector3(escala, escala, escala)
 		raiz.add_child(rocha)
 

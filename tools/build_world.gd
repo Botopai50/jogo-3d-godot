@@ -98,14 +98,17 @@ func construir_ambiente() -> WorldEnvironment:
 	ambiente.sky = ceu
 	ambiente.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
 	ambiente.ambient_light_sky_contribution = 1.0
-	ambiente.ambient_light_energy = 1.0
-	ambiente.tonemap_mode = Environment.TONE_MAPPER_FILMIC
+	# A luz ambiente vinda do ceu e forte: acima de ~0.15 ela satura o verde do
+	# atlas e o terreno inteiro sai branco. O tonemap fica linear de proposito,
+	# para as cores chapadas da paleta chegarem a tela como sao.
+	ambiente.ambient_light_energy = 0.09
+	ambiente.tonemap_mode = Environment.TONE_MAPPER_LINEAR
 	# Neblina distante: esconde onde o plano do oceano acaba e da profundidade.
 	ambiente.fog_enabled = true
-	ambiente.fog_light_color = Color(0.70, 0.81, 0.89)
-	ambiente.fog_density = 0.0009
+	ambiente.fog_light_color = Color(0.66, 0.78, 0.88)
+	ambiente.fog_density = 0.00025
 	ambiente.fog_sky_affect = 0.0
-	ambiente.fog_aerial_perspective = 0.3
+	ambiente.fog_aerial_perspective = 0.2
 
 	var no := WorldEnvironment.new()
 	no.name = "Ambiente"
@@ -149,7 +152,7 @@ func construir_mundo() -> Error:
 	var sol := DirectionalLight3D.new()
 	sol.name = "Sol"
 	sol.rotation = Vector3(deg_to_rad(-52.0), deg_to_rad(-135.0), 0.0)
-	sol.light_energy = 1.1
+	sol.light_energy = 0.55
 	sol.light_color = Color(1.0, 0.97, 0.90)
 	sol.shadow_enabled = true
 	sol.directional_shadow_mode = DirectionalLight3D.SHADOW_PARALLEL_2_SPLITS

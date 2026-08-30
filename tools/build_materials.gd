@@ -11,8 +11,12 @@ func _init() -> void:
 	terreno.resource_name = "Atlas do terreno (Grid)"
 	terreno.albedo_texture = load(ATLAS)
 	# O atlas tem 4 quadrantes de cor chapada (grama, neve, rocha, areia).
-	# Filtro "nearest" mantem as cores puras; os mipmaps evitam cintilacao ao longe.
-	terreno.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS
+	# Filtro "nearest" mantem as cores puras; os mipmaps evitam cintilacao ao
+	# longe e o filtro anisotropico limpa o chao visto de raspao. Os mipmaps
+	# precisam existir de fato na textura importada: pedir filtragem com mipmap
+	# numa textura sem mipmap deixa a textura incompleta no OpenGL e ela sai
+	# branca na tela.
+	terreno.texture_filter = BaseMaterial3D.TEXTURE_FILTER_NEAREST_WITH_MIPMAPS_ANISOTROPIC
 	terreno.roughness = 0.95
 	terreno.metallic = 0.0
 	var e1 := ResourceSaver.save(terreno, "res://materials/terreno_atlas.tres")
