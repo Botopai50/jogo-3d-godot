@@ -143,11 +143,21 @@ func rodar() -> void:
 
 	print("--- rio e lago ---")
 	var agua := ilha.get_node_or_null("Agua")
-	checar(ilha.tem_agua(), "o lago foi escavado no relevo")
-	var celulas_de_rio: int = ilha._pecas_escolhidas.size()
+	checar(ilha.tem_agua(), "o lago existe")
+	var celulas_de_rio := 0
+	var celulas_de_lago := 0
 	var pior_desalinho := 0.0
+	var pior_fresta := 0.0
 	for item in ilha._pecas_escolhidas:
-		pior_desalinho = maxf(pior_desalinho, float(item["escolha"].get("desalinho", 0.0)))
+		if item["tipo"] == "rio":
+			celulas_de_rio += 1
+			pior_desalinho = maxf(pior_desalinho, float(item["escolha"].get("desalinho", 0.0)))
+		else:
+			celulas_de_lago += 1
+			pior_fresta = maxf(pior_fresta, float(item["escolha"].get("erro", 0.0)))
+	print("  celulas de lago: %d | pior fresta entre margens: %.2f m" % [celulas_de_lago, pior_fresta])
+	checar(celulas_de_lago >= 4, "o lago e montado com pecas do pacote", "(%d celulas)" % celulas_de_lago)
+	checar(pior_fresta < 0.5, "as margens do lago encaixam sem fresta", "(%.2f m)" % pior_fresta)
 	print("  celulas de rio: %d | pior desalinho do leito: %.3f do lado (%.1f m)" % [
 		celulas_de_rio, pior_desalinho, pior_desalinho * ilha.tamanho_do_modulo])
 	checar(celulas_de_rio >= 2, "o rio tem trecho suficiente", "(%d celulas)" % celulas_de_rio)
@@ -157,6 +167,22 @@ func rodar() -> void:
 		"(%.1f m)" % (pior_desalinho * ilha.tamanho_do_modulo))
 	checar(agua != null and agua.get_node_or_null("LaminaDoLago") != null, "o lago tem lamina de agua")
 	checar(agua != null and agua.get_node_or_null("LaminaDoRio") != null, "o rio tem lamina de agua")
+
+	# Toda a agua doce tem que ficar dentro das pecas CPT_River / CPT_River_End.
+	# Um vertice fora delas e agua boiando sobre terreno comum.
+	var fora := 0
+	var total_de_vertices := 0
+	for nome_da_lamina in ["LaminaDoLago", "LaminaDoRio"]:
+		var lamina := agua.get_node_or_null(nome_da_lamina) as MeshInstance3D
+		if lamina == null or lamina.mesh == null:
+			continue
+		for v in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+			var p: Vector3 = lamina.transform * v
+			total_de_vertices += 1
+			if not ilha._tem_peca_de_agua(p):
+				fora += 1
+	print("  vertices de agua: %d | fora de peca de rio ou lago: %d" % [total_de_vertices, fora])
+	checar(fora == 0, "nenhuma agua fica fora dos modulos CPT_River", "(%d vertices)" % fora)
 
 	# Nenhuma celula pode receber terreno comum e peca de rio ao mesmo tempo.
 	var repetidas := 0

@@ -81,7 +81,7 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 			pegada = candidata
 			break
 	if pegada == 0.0:
-		return {"pegada": 0.0, "encaixavel": false, "bordas": [], "cruzamentos": []}
+		return {"pegada": 0.0, "encaixavel": false, "bordas": [], "cruzamentos": [], "perfis": []}
 
 	var x0 := caixa.position.x
 	var x1 := caixa.position.x + caixa.size.x
@@ -91,6 +91,12 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 	# fundo de cada borda, na ordem norte (z minimo), leste, sul e oeste
 	var fundos := [INF, INF, INF, INF]
 	var cruzamentos := [0.0, 0.0, 0.0, 0.0]
+	# Perfil de cada borda em cinco faixas ao longo dela. Duas pecas so encaixam
+	# sem fresta quando os perfis das bordas vizinhas batem: comparar so o ponto
+	# mais fundo trata uma rampa e um degrau como se fossem a mesma coisa.
+	var perfis: Array = []
+	for _b in range(4):
+		perfis.append([INF, INF, INF, INF, INF])
 	var lado := maxf(caixa.size.x, 0.001)
 	var borda := 0.5
 	for m in malhas:
@@ -105,6 +111,16 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 					limites[1] = maxf(limites[1], p.y)
 				var centro_x := x0 + caixa.size.x * 0.5
 				var centro_z := z0 + caixa.size.z * 0.5
+				var faixa_x := clampi(int((p.x - x0) / maxf(caixa.size.x, 0.001) * 5.0), 0, 4)
+				var faixa_z := clampi(int((p.z - z0) / maxf(caixa.size.z, 0.001) * 5.0), 0, 4)
+				if absf(p.z - z0) < borda:
+					(perfis[0] as Array)[faixa_x] = minf(float((perfis[0] as Array)[faixa_x]), p.y)
+				if absf(p.x - x1) < borda:
+					(perfis[1] as Array)[faixa_z] = minf(float((perfis[1] as Array)[faixa_z]), p.y)
+				if absf(p.z - z1) < borda:
+					(perfis[2] as Array)[faixa_x] = minf(float((perfis[2] as Array)[faixa_x]), p.y)
+				if absf(p.x - x0) < borda:
+					(perfis[3] as Array)[faixa_z] = minf(float((perfis[3] as Array)[faixa_z]), p.y)
 				if absf(p.z - z0) < borda and p.y < fundos[0]:
 					fundos[0] = p.y
 					cruzamentos[0] = (p.x - centro_x) / lado
@@ -118,7 +134,7 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 					fundos[3] = p.y
 					cruzamentos[3] = (p.z - centro_z) / lado
 	if limites[0] == INF:
-		return {"pegada": pegada, "encaixavel": false, "bordas": [], "cruzamentos": []}
+		return {"pegada": pegada, "encaixavel": false, "bordas": [], "cruzamentos": [], "perfis": []}
 	var bordas: Array = []
 	for i in range(4):
 		bordas.append(classe_da_borda(fundos[i]) if fundos[i] != INF else 0)
@@ -129,8 +145,16 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 	var posicoes: Array = []
 	for i in range(4):
 		posicoes.append(snappedf(cruzamentos[i], 0.001))
+	var perfis_limpos: Array = []
+	for i in range(4):
+		var faixa: Array = []
+		for k in range(5):
+			var valor: float = float((perfis[i] as Array)[k])
+			faixa.append(snappedf(0.0 if valor == INF else valor, 0.01))
+		perfis_limpos.append(faixa)
 	var plano: bool = absf(limites[0]) < 0.05 and absf(limites[1]) < 0.05
-	return {"pegada": pegada, "encaixavel": plano, "bordas": bordas, "cruzamentos": posicoes}
+	return {"pegada": pegada, "encaixavel": plano, "bordas": bordas,
+		"cruzamentos": posicoes, "perfis": perfis_limpos}
 
 
 func _init() -> void:
@@ -181,6 +205,7 @@ func _init() -> void:
 			"encaixavel": encaixe["encaixavel"],
 			"bordas": encaixe["bordas"],
 			"cruzamentos": encaixe["cruzamentos"],
+			"perfis": encaixe["perfis"],
 		})
 		feitos += 1
 		if feitos % 400 == 0:
