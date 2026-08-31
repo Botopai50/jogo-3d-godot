@@ -1361,12 +1361,25 @@ func _niveis_da_agua(grades: Dictionary) -> Dictionary:
 ## pode separar duas regioes abaixo do nivel e deixar um corte seco visivel.
 ## Esta faixa acompanha o leito real da malha e une essas regioes sem alagar o
 ## restante da celula.
+func _largura_ate_margem(centro: Vector3, lado: Vector3, nivel: float) -> float:
+	var largura_minima := maxf(tamanho_do_modulo * largura_da_agua_do_rio * 0.5, 5.0)
+	var largura_maxima := tamanho_do_modulo * 0.30
+	var ultima := largura_minima
+	for distancia in range(int(largura_minima), int(largura_maxima) + 1, 2):
+		var candidato := centro + lado * float(distancia)
+		var celula := Vector2i(roundi(candidato.x / tamanho_do_modulo),
+			roundi(candidato.z / tamanho_do_modulo))
+		if not _celulas_de_agua.has(celula):
+			break
+		if _altura_do_chao(candidato.x, candidato.z) >= nivel + 0.12:
+			break
+		ultima = float(distancia)
+	return ultima
+
+
 func _adicionar_curso_continuo(vertices: PackedVector3Array,
-		normais: PackedVector3Array, indices: PackedInt32Array,
-		grades: Dictionary, niveis: Dictionary, lado_da_grade: int) -> void:
-	var largura := maxf(tamanho_do_modulo * largura_da_agua_do_rio, 6.0)
-	var passo := tamanho_do_modulo / float(lado_da_grade - 1)
-	var saida_anterior: Variant = null
+		normais: PackedVector3Array, indices: PackedInt32Array) -> void:
+	var pontos: Array[Vector3] = []
 	for item: Dictionary in _pecas_escolhidas:
 		if item["tipo"] != "rio":
 			continue
@@ -1374,57 +1387,20 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 		var escolha: Dictionary = item["escolha"]
 		var centro := Vector3(celula.x * tamanho_do_modulo, 0.0,
 			celula.y * tamanho_do_modulo)
-		var entrada := centro + _ponto_no_mundo(
-			int(escolha["borda_entrada"]), float(escolha["fracao_entrada"]))
-		entrada.y = _altura_do_chao(entrada.x, entrada.z) + 0.4
-		var saida: Vector3
-		if int(escolha["borda_saida"]) >= 0:
-			saida = centro + _ponto_no_mundo(
-				int(escolha["borda_saida"]), float(escolha["fracao_saida"]))
-			saida.y = _altura_do_chao(saida.x, saida.z) + 0.4
-		else:
-			# A nascente termina no ponto ja inundado mais proximo da entrada.
-			# Mirar o ponto mais fundo fazia a faixa atravessar um ressalto seco
-			# antes de chegar a poca.
-			var grade: PackedFloat32Array = grades[celula]
-			var nivel: float = niveis[celula]
-			var menor_distancia := INF
-			var menor_indice := -1
-			for i in range(grade.size()):
-				if grade[i] == INF or grade[i] >= nivel - 0.02:
-					continue
-				var tx := i % lado_da_grade
-				var tz := i / lado_da_grade
-				var candidato := centro + Vector3(
-					float(tx) * passo - tamanho_do_modulo * 0.5,
-					0.0,
-					float(tz) * passo - tamanho_do_modulo * 0.5)
-				var distancia := Vector2(candidato.x - entrada.x,
-					candidato.z - entrada.z).length_squared()
-				if distancia < menor_distancia:
-					menor_distancia = distancia
-					menor_indice = i
-			if menor_indice < 0:
-				menor_indice = 0
-			var gx := menor_indice % lado_da_grade
-			var gz := menor_indice / lado_da_grade
-			saida = centro + Vector3(
-				float(gx) * passo - tamanho_do_modulo * 0.5,
-				0.0,
-				float(gz) * passo - tamanho_do_modulo * 0.5)
-
-		var pontos: Array[Vector3] = []
-		if saida_anterior != null:
-			pontos.append(saida_anterior as Vector3)
-		pontos.append(entrada)
+		var borda_entrada := int(escolha["borda_entrada"])
+		var borda_saida := int(escolha["borda_saida"])
+		var entrada := centro if borda_entrada < 0 else centro + _ponto_no_mundo(
+			borda_entrada, float(escolha["fracao_entrada"]))
+		var saida := centro if borda_saida < 0 else centro + _ponto_no_mundo(
+			borda_saida, float(escolha["fracao_saida"]))
 		var frente := saida - entrada
 		var perpendicular := frente.normalized().cross(Vector3.UP).normalized()
-		for k in range(1, 49):
+		for k in range(49):
 			var base := entrada.lerp(saida, float(k) / 48.0)
 			var melhor := base
 			var melhor_altura := INF
-			for j in range(-12, 13):
-				var candidato := base + perpendicular * (float(j) / 12.0) * tamanho_do_modulo * 0.2
+			for j in range(-16, 17):
+				var candidato := base + perpendicular * (float(j) / 16.0) * tamanho_do_modulo * 0.22
 				var celula_do_ponto := Vector2i(
 					roundi(candidato.x / tamanho_do_modulo),
 					roundi(candidato.z / tamanho_do_modulo))
@@ -1434,27 +1410,23 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 				if altura < melhor_altura:
 					melhor_altura = altura
 					melhor = candidato
-			melhor.y = melhor_altura + 0.4
-			pontos.append(melhor)
+			melhor.y = melhor_altura + 0.55
+			if pontos.is_empty() or pontos[pontos.size() - 1].distance_to(melhor) > 0.35:
+				pontos.append(melhor)
 
-		# Um unico strip com juntas compartilhadas. Quadros independentes abriam
-		# pequenas cunhas secas em toda curva mais fechada.
-		var inicio := vertices.size()
-		for i in range(pontos.size()):
-			var anterior: Vector3 = pontos[maxi(i - 1, 0)]
-			var seguinte: Vector3 = pontos[mini(i + 1, pontos.size() - 1)]
-			var tangente := (seguinte - anterior).normalized()
-			var lado := tangente.cross(Vector3.UP).normalized() * largura * 0.5
-			vertices.append(pontos[i] - lado)
-			vertices.append(pontos[i] + lado)
-			normais.append_array([Vector3.UP, Vector3.UP])
-		for i in range(pontos.size() - 1):
-			var a := inicio + i * 2
-			indices.append_array([a, a + 3, a + 1, a, a + 2, a + 3])
-		# Guarda o ultimo ponto ja assentado sobre o terreno. A versao anterior
-		# guardava `saida` ainda com Y=0; a ligacao seguinte mergulhava sob a
-		# ilha e abria um trecho seco exatamente na divisa entre os modulos.
-		saida_anterior = pontos[pontos.size() - 1]
+	for i in range(pontos.size()):
+		var anterior: Vector3 = pontos[maxi(i - 1, 0)]
+		var seguinte: Vector3 = pontos[mini(i + 1, pontos.size() - 1)]
+		var tangente := (seguinte - anterior).normalized()
+		var lado := tangente.cross(Vector3.UP).normalized()
+		var esquerda := _largura_ate_margem(pontos[i], -lado, pontos[i].y)
+		var direita := _largura_ate_margem(pontos[i], lado, pontos[i].y)
+		vertices.append(pontos[i] - lado * esquerda)
+		vertices.append(pontos[i] + lado * direita)
+		normais.append_array([Vector3.UP, Vector3.UP])
+	for i in range(pontos.size() - 1):
+		var a := i * 2
+		indices.append_array([a, a + 3, a + 1, a, a + 2, a + 3])
 
 
 ## Enche a depressao de cada peca ate o nivel da celula.
@@ -1499,6 +1471,28 @@ func _adicionar_poligono_de_agua(poligono: Array[Vector2], nivel: float,
 
 
 func _montar_laminas(raiz: Node3D) -> void:
+	var vertices := PackedVector3Array()
+	var normais := PackedVector3Array()
+	var indices := PackedInt32Array()
+	_adicionar_curso_continuo(vertices, normais, indices)
+	if vertices.is_empty():
+		return
+	var malha := ArrayMesh.new()
+	var arrays: Array = []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normais
+	arrays[Mesh.ARRAY_INDEX] = indices
+	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	malha.surface_set_material(0, _material_da_agua())
+	var visual := MeshInstance3D.new()
+	visual.name = "LaminaDoRio"
+	visual.mesh = malha
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(visual)
+
+
+func _montar_laminas_antigo(raiz: Node3D) -> void:
 	# A grade antiga de 26x26 gerava degraus de quase cinco metros e deixava a
 	# margem com aspecto quebrado. Em 128x128 cada amostra fica abaixo de um metro.
 	var lado_da_grade := 128
@@ -1568,7 +1562,7 @@ func _montar_laminas(raiz: Node3D) -> void:
 		if vertices.is_empty():
 			continue
 		if tipo == "rio":
-			_adicionar_curso_continuo(vertices, normais, indices, grades, niveis, lado_da_grade)
+			_adicionar_curso_continuo(vertices, normais, indices)
 		var malha := ArrayMesh.new()
 		var arrays: Array = []
 		arrays.resize(Mesh.ARRAY_MAX)
