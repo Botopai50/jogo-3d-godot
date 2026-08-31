@@ -12,7 +12,7 @@ var errors := PackedStringArray()
 # Os modulos CPT de rio usam o topo do solo em y = 0 e escavam o canal para
 # baixo. A lamina fica dentro dessa escavacao: acima do fundo, mas abaixo do
 # solo seco, que naturalmente esconde as partes do plano fora do canal.
-const WATER_LEVEL_ABOVE_GROUND := 0.025
+const WATER_LEVEL_OFFSET := -0.12
 
 
 func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
@@ -57,7 +57,7 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		# O modulo recebe a altura macro da ilha durante a deformacao. A agua
 		# usa a mesma referencia ampla, sem copiar as irregularidades do leito.
 		tile.water_height = float(height_sampler.call(center_x, center_z)) \
-			+ WATER_LEVEL_ABOVE_GROUND * (tile_size / 100.0)
+			+ WATER_LEVEL_OFFSET * (tile_size / 100.0)
 		if entry >= 0:
 			_add_socket(tile, entry, float(asset["entry_fraction"]) * tile_size,
 				tile.water_height,

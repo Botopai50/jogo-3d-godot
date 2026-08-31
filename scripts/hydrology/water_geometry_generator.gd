@@ -90,7 +90,7 @@ func _add_masked_tile(tile: WaterTileData, height_grid_provider: Callable,
 			var world_x := origin.x - half + float(x) * step
 			var world_z := origin.z - half + float(z) * step
 			var macro_level := float(macro_height_sampler.call(world_x, world_z))
-			var level := macro_level + HydrologyPlanner.WATER_LEVEL_ABOVE_GROUND
+			var level := macro_level + HydrologyPlanner.WATER_LEVEL_OFFSET
 			levels[z * resolution + x] = level
 			mask[z * resolution + x] = ground < macro_level - MINIMUM_CHANNEL_DEPTH
 	# Fecha pequenas cristas e falhas de triangulacao no leito sem liberar a
