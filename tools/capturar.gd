@@ -67,4 +67,20 @@ func rodar() -> void:
 	await esperar(20)
 	await capturar("ilha_de_lado")
 
+	# Rio e lago: uma vista de cima do conjunto e outra rente ao canal.
+	if ilha.has_method("centro_do_lago_em_metros") and ilha.tem_agua():
+		var lago: Vector3 = ilha.centro_do_lago_em_metros()
+		camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+		camera.fov = 60.0
+		camera.global_position = lago + Vector3(0.0, 420.0, 520.0)
+		camera.look_at(lago, Vector3.UP)
+		await esperar(20)
+		await capturar("lago_de_cima")
+
+		var canal: Vector3 = ilha.ponto_do_rio_em_metros(0.5)
+		camera.global_position = canal + Vector3(0.0, 330.0, 1.0)
+		camera.look_at(canal, Vector3.UP)
+		await esperar(20)
+		await capturar("rio_de_perto")
+
 	quit()

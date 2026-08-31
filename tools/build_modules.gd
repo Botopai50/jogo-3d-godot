@@ -26,6 +26,7 @@ const DESTINOS := {
 	"props": "res://scenes/modules/props",
 	"ilhotas": "res://scenes/modules/islets",
 	"nuvens": "res://scenes/modules/clouds",
+	"rio": "res://scenes/modules/river",
 }
 
 ## Categoria do pacote que alimenta cada tipo de peca solta. Elas nao encaixam
@@ -201,6 +202,30 @@ func _init() -> void:
 		else:
 			falhas += 1
 
+	# Rio e lago encaixam na grade como o terreno, mas com bordas abertas: o
+	# canal tem 2 metros de fundo e a bacia do lago 6. Cada peca so pode ficar
+	# ao lado de outra cuja borda vizinha tenha a mesma profundidade, e e a
+	# assinatura gravada aqui que permite o gerador montar o tracado.
+	var rio: Array = []
+	for entrada: Dictionary in catalogo:
+		if entrada["categoria"] != "River" or entrada["lod"] or entrada["estilo"] != "CPT":
+			continue
+		if entrada["pegada"] != 100.0:
+			continue
+		rio.append(entrada)
+	rio.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["nome"] < b["nome"])
+	var pecas_de_rio: Array = []
+	for entrada: Dictionary in rio:
+		if construir(entrada, DESTINOS["rio"], true):
+			pecas_de_rio.append({
+				"nome": entrada["nome"],
+				"bordas": entrada["bordas"],
+				"cruzamentos": entrada["cruzamentos"],
+				"y_min": entrada["y_min"],
+			})
+		else:
+			falhas += 1
+
 	# Montanhas, ilhas e nuvens nao encaixam na grade: sao pousadas sobre o
 	# terreno, no mar e no ceu. Entram todas, menos as copias de LOD. O gerador
 	# escolhe cada peca pela largura e pela altura registradas no acervo.
@@ -230,6 +255,7 @@ func _init() -> void:
 			else:
 				falhas += 1
 		acervo[tipo] = registradas
+	acervo["rio"] = pecas_de_rio
 
 	if not _salvar_json(DIR_FAIXAS, faixas) or not _salvar_json(DIR_ACERVO, acervo):
 		quit(1)
