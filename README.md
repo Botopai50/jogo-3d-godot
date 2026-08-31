@@ -102,8 +102,28 @@ próxima. No mapa atual a pior emenda fica em 3,9 m, contra os até 82 m de uma 
 aleatória.
 
 A lâmina de água acompanha o leito de verdade: a linha é adensada e cada ponto é encaixado no
-ponto mais baixo do canal, procurando de lado. Sem isso a água passa reta pelas curvas e
-some por cima da margem em parte do trecho.
+ponto mais baixo do canal, procurando de lado por quase toda a largura da célula — o canal do
+pacote pode atravessar de um lado ao outro, e uma busca curta nunca o alcança. O ciclo é
+encaixar, suavizar e encaixar de novo: só suavizar corta as curvas e tira a linha do fundo.
+O encaixe é restrito às células de canal, porque dentro do lago o ponto mais baixo é o meio da
+bacia e a fita mergulharia até lá.
+
+Entre as peças que servem para um trecho reto, algumas atravessam a célula na diagonal
+(`CPT_River_L_c_01` entra a +0,37 e sai a −0,34). O gerador penaliza essa travessia, senão o
+leito serpenteia meia célula e a lâmina, que segue uma linha, não acompanha.
+
+### Conferindo o traçado
+
+`tools/diagnostico_rio.gd` desenha por cima do cenário, em cores fortes, o leito medido nos
+módulos (magenta), a lâmina gerada (ciano), os cruzamentos de borda (amarelo) e o contorno das
+células de água (branco), e grava uma vista de cima. Ele também mede a distância entre a
+lâmina e o leito — hoje **7,1 m em média e 20,8 m no pior ponto**, contra um canal de cerca de
+15 m de largura:
+
+```bash
+xvfb-run godot --path . --rendering-driver opengl3 --resolution 1600x900 \
+  --script tools/diagnostico_rio.gd -- /tmp/capturas
+```
 
 O lago também é feito só de peças do pacote. Elas **não são bacias, são rampas de margem**:
 `CPT_River_End_L_d_01` desce de −6 na borda norte inteira até 0 na sul; `_d_05` afunda só no
