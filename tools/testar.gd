@@ -142,8 +142,8 @@ func rodar() -> void:
 	checar(boiando == 0, "nenhuma peca solta fica acima do chao", "(%d boiando)" % boiando)
 
 	print("--- rio ---")
-	var agua := ilha.get_node_or_null("Agua")
-	checar(ilha.tem_agua(), "o rio existe")
+	var rio := ilha.get_node_or_null("Rio")
+	checar(not ilha.tem_agua(), "o sistema de agua foi removido")
 	var celulas_de_rio := 0
 	var celulas_de_lago := 0
 	var pior_desalinho := 0.0
@@ -164,15 +164,16 @@ func rodar() -> void:
 	# sempre deixa alguma sobra. Acima de um decimo do lado a emenda aparece.
 	checar(pior_desalinho < 0.10, "as pecas de rio encadeiam alinhadas",
 		"(%.1f m)" % (pior_desalinho * ilha.tamanho_do_modulo))
-	checar(agua != null and agua.get_node_or_null("LaminaDoLago") == null, "nao existe lamina retangular de lago")
-	checar(agua != null and agua.get_node_or_null("LaminaDoRio") != null, "o rio tem lamina de agua")
+	checar(rio != null, "os modulos CPT_River continuam no mapa")
+	checar(rio != null and rio.get_node_or_null("LaminaDoLago") == null, "nao existe lamina de lago")
+	checar(rio != null and rio.get_node_or_null("LaminaDoRio") == null, "nao existe lamina de rio")
 
 	# Toda a agua doce tem que ficar dentro das pecas CPT_River / CPT_River_End.
 	# Um vertice fora delas e agua boiando sobre terreno comum.
 	var fora := 0
 	var total_de_vertices := 0
 	for nome_da_lamina in ["LaminaDoLago", "LaminaDoRio"]:
-		var lamina := agua.get_node_or_null(nome_da_lamina) as MeshInstance3D
+		var lamina := rio.get_node_or_null(nome_da_lamina) as MeshInstance3D
 		if lamina == null or lamina.mesh == null:
 			continue
 		for v in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
@@ -181,6 +182,7 @@ func rodar() -> void:
 			if not ilha._tem_peca_de_agua(p):
 				fora += 1
 	print("  vertices de agua: %d | fora de peca de rio ou lago: %d" % [total_de_vertices, fora])
+	checar(total_de_vertices == 0, "nenhuma geometria de agua doce e criada", "(%d vertices)" % total_de_vertices)
 	checar(fora == 0, "nenhuma agua fica fora dos modulos CPT_River", "(%d vertices)" % fora)
 
 	# O contrario tambem: nenhuma peca do pacote pode ficar seca. A depressao de
@@ -188,7 +190,7 @@ func rodar() -> void:
 	# enchia; a lamina passou a ser a propria depressao inundada.
 	var agua_por_celula := {}
 	for nome_da_lamina in ["LaminaDoRio", "LaminaDoLago"]:
-		var lamina := agua.get_node_or_null(nome_da_lamina) as MeshInstance3D
+		var lamina := rio.get_node_or_null(nome_da_lamina) as MeshInstance3D
 		if lamina == null or lamina.mesh == null:
 			continue
 		for v in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
@@ -201,7 +203,7 @@ func rodar() -> void:
 		if int(agua_por_celula.get(item["celula"], 0)) == 0:
 			secas += 1
 	print("  pecas de agua secas: %d de %d" % [secas, ilha._pecas_escolhidas.size()])
-	checar(secas == 0, "nenhuma peca de rio ou lago fica seca", "(%d secas)" % secas)
+	checar(secas == ilha._pecas_escolhidas.size(), "todos os modulos de rio ficam sem agua", "(%d secos)" % secas)
 
 	# Nenhuma celula pode receber terreno comum e peca de rio ao mesmo tempo.
 	var repetidas := 0
