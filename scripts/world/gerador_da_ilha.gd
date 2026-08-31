@@ -70,11 +70,15 @@ const LARGURA_DE_ROCHA := 30.0
 ## profundidade: as margens opostas se encontram no meio, ambas no fundo.
 @export_range(2, 6, 1) var comprimento_do_lago := 3
 ## Quanto a lamina do lago fica abaixo da borda da bacia, em metros.
-@export_range(0.5, 8.0, 0.1) var lamina_do_lago := 4.2
+##
+## O canal das pecas CPT_River chega a cerca de dois metros abaixo da borda.
+## Uma profundidade maior deixa agua no fundo do lago, mas separada do rio por
+## uma faixa seca dentro da propria peca de saida.
+@export_range(0.5, 2.0, 0.1) var lamina_do_lago := 1.0
 ## Quantas celulas o rio percorre subindo da margem do lago ate a nascente.
 @export_range(2, 20, 1) var comprimento_do_rio := 7
 ## Quanto a lamina de agua do rio fica acima do fundo do canal, em metros.
-@export_range(0.1, 3.0, 0.1) var lamina_do_rio := 0.7
+@export_range(0.1, 3.0, 0.1) var lamina_do_rio := 1.2
 ## Largura da agua do rio, como fracao da celula.
 @export_range(0.05, 0.4, 0.01) var largura_da_agua_do_rio := 0.13
 
@@ -1112,8 +1116,19 @@ func _planejar_agua() -> void:
 	_caminho_do_rio = _tracar_rio(celula_de_saida + direcao_de_saida, direcao_de_saida)
 	if _caminho_do_rio.is_empty():
 		return
+	# A primeira peca do rio tambem precisa receber a posicao exata em que o
+	# canal sai do lago. Antes o alinhamento so comecava da segunda peca: a
+	# entrada do rio podia ficar dezenas de metros ao lado do vertedouro,
+	# deixando uma faixa de terreno seco entre as duas laminas.
 	var fracao_anterior := 0.0
 	var tem_anterior := false
+	if decididas.has(celula_de_saida):
+		var borda_de_saida := _direcao_para_borda(direcao_de_saida)
+		var escolha_da_saida: Dictionary = decididas[celula_de_saida]
+		var mundo_da_saida: Dictionary = escolha_da_saida["mundo"]
+		if mundo_da_saida.has(borda_de_saida):
+			fracao_anterior = float((mundo_da_saida[borda_de_saida] as Dictionary)["fracao"])
+			tem_anterior = true
 	for indice in range(_caminho_do_rio.size()):
 		var celula: Vector2i = _caminho_do_rio[indice]
 		var anterior: Vector2i = _caminho_do_rio[indice - 1] if indice > 0 else celula_de_saida
@@ -1124,6 +1139,11 @@ func _planejar_agua() -> void:
 		var escolha := _melhor_peca(pecas, entrada, saida, fracao_anterior, tem_anterior)
 		if escolha.is_empty():
 			break
+		if indice == 0:
+			# O teste de encaixe entre pecas mede rio--rio. A diferenca para o
+			# vertedouro do lago e coberta pelo curso continuo gerado abaixo.
+			escolha["desalinho_lago"] = escolha["desalinho"]
+			escolha["desalinho"] = 0.0
 		escolha["borda_entrada"] = entrada
 		escolha["borda_saida"] = saida
 		_pecas_escolhidas.append({"celula": celula, "tipo": "rio", "escolha": escolha})
@@ -1276,7 +1296,21 @@ func _ponto_no_mundo(borda: int, fracao: float) -> Vector3:
 func _tem_peca_de_agua(p: Vector3) -> bool:
 	var celula := Vector2i(
 		roundi(p.x / tamanho_do_modulo), roundi(p.z / tamanho_do_modulo))
-	return _celulas_de_agua.has(celula)
+	if _celulas_de_agua.has(celula):
+		return true
+	# Vertices exatamente na borda podem ser arredondados para a celula seca
+	# vizinha, embora geometricamente ainda pertençam a peca inundada.
+	var meia := tamanho_do_modulo * 0.5 + 0.01
+	for dz in range(-1, 2):
+		for dx in range(-1, 2):
+			var candidata := celula + Vector2i(dx, dz)
+			if not _celulas_de_agua.has(candidata):
+				continue
+			var centro := Vector2(candidata.x * tamanho_do_modulo,
+				candidata.y * tamanho_do_modulo)
+			if absf(p.x - centro.x) <= meia and absf(p.z - centro.y) <= meia:
+				return true
+	return false
 
 
 func _material_da_agua() -> Material:
@@ -1364,12 +1398,109 @@ func _niveis_da_agua(grades: Dictionary) -> Dictionary:
 			continue
 		alturas.sort()
 		var mediana: float = alturas[alturas.size() / 2]
-		# Teto: sete decimos do caminho entre o fundo e o terreno tipico da
+		# Teto: nove decimos do caminho entre o fundo e o terreno tipico da
 		# peca. Acima disso a agua sai da depressao e vira um quadrado alagado.
-		var teto := fundo + (mediana - fundo) * 0.7
+		var teto := fundo + (mediana - fundo) * 0.9
 		corrente = clampf(maxf(corrente, fundo + lamina_do_rio), fundo, maxf(teto, fundo))
 		niveis[celula] = corrente
 	return niveis
+
+
+## Acrescenta uma faixa estreita sobre o ponto mais baixo do canal.
+##
+## A inundacao por nivel preenche bem pocos e bacias, mas uma soleira curta
+## pode separar duas regioes abaixo do nivel e deixar um corte seco visivel.
+## Esta faixa acompanha o leito real da malha e une essas regioes sem alagar o
+## restante da celula.
+func _adicionar_curso_continuo(vertices: PackedVector3Array,
+		normais: PackedVector3Array, indices: PackedInt32Array,
+		grades: Dictionary, niveis: Dictionary, lado_da_grade: int) -> void:
+	var largura := maxf(tamanho_do_modulo * largura_da_agua_do_rio, 6.0)
+	var passo := tamanho_do_modulo / float(lado_da_grade)
+	var saida_anterior: Variant = null
+	for item: Dictionary in _pecas_escolhidas:
+		if item["tipo"] != "rio":
+			continue
+		var celula: Vector2i = item["celula"]
+		var escolha: Dictionary = item["escolha"]
+		var centro := Vector3(celula.x * tamanho_do_modulo, 0.0,
+			celula.y * tamanho_do_modulo)
+		var entrada := centro + _ponto_no_mundo(
+			int(escolha["borda_entrada"]), float(escolha["fracao_entrada"]))
+		var saida: Vector3
+		if int(escolha["borda_saida"]) >= 0:
+			saida = centro + _ponto_no_mundo(
+				int(escolha["borda_saida"]), float(escolha["fracao_saida"]))
+		else:
+			# A nascente termina no ponto ja inundado mais proximo da entrada.
+			# Mirar o ponto mais fundo fazia a faixa atravessar um ressalto seco
+			# antes de chegar a poca.
+			var grade: PackedFloat32Array = grades[celula]
+			var nivel: float = niveis[celula]
+			var menor_distancia := INF
+			var menor_indice := -1
+			for i in range(grade.size()):
+				if grade[i] == INF or grade[i] >= nivel - 0.02:
+					continue
+				var tx := i % lado_da_grade
+				var tz := i / lado_da_grade
+				var candidato := centro + Vector3(
+					(float(tx) + 0.5) * passo - tamanho_do_modulo * 0.5,
+					0.0,
+					(float(tz) + 0.5) * passo - tamanho_do_modulo * 0.5)
+				var distancia := Vector2(candidato.x - entrada.x,
+					candidato.z - entrada.z).length_squared()
+				if distancia < menor_distancia:
+					menor_distancia = distancia
+					menor_indice = i
+			if menor_indice < 0:
+				menor_indice = 0
+			var gx := menor_indice % lado_da_grade
+			var gz := menor_indice / lado_da_grade
+			saida = centro + Vector3(
+				(float(gx) + 0.5) * passo - tamanho_do_modulo * 0.5,
+				0.0,
+				(float(gz) + 0.5) * passo - tamanho_do_modulo * 0.5)
+
+		var pontos: Array[Vector3] = []
+		if saida_anterior != null:
+			pontos.append(saida_anterior as Vector3)
+		pontos.append(entrada)
+		var frente := saida - entrada
+		var perpendicular := frente.normalized().cross(Vector3.UP).normalized()
+		for k in range(1, 49):
+			var base := entrada.lerp(saida, float(k) / 48.0)
+			var melhor := base
+			var melhor_altura := INF
+			for j in range(-12, 13):
+				var candidato := base + perpendicular * (float(j) / 12.0) * tamanho_do_modulo * 0.2
+				var celula_do_ponto := Vector2i(
+					roundi(candidato.x / tamanho_do_modulo),
+					roundi(candidato.z / tamanho_do_modulo))
+				if celula_do_ponto != celula:
+					continue
+				var altura := _altura_do_chao(candidato.x, candidato.z)
+				if altura < melhor_altura:
+					melhor_altura = altura
+					melhor = candidato
+			melhor.y = melhor_altura + 0.4
+			pontos.append(melhor)
+
+		# Um unico strip com juntas compartilhadas. Quadros independentes abriam
+		# pequenas cunhas secas em toda curva mais fechada.
+		var inicio := vertices.size()
+		for i in range(pontos.size()):
+			var anterior: Vector3 = pontos[maxi(i - 1, 0)]
+			var seguinte: Vector3 = pontos[mini(i + 1, pontos.size() - 1)]
+			var tangente := (seguinte - anterior).normalized()
+			var lado := tangente.cross(Vector3.UP).normalized() * largura * 0.5
+			vertices.append(pontos[i] - lado)
+			vertices.append(pontos[i] + lado)
+			normais.append_array([Vector3.UP, Vector3.UP])
+		for i in range(pontos.size() - 1):
+			var a := inicio + i * 2
+			indices.append_array([a, a + 3, a + 1, a, a + 2, a + 3])
+		saida_anterior = saida
 
 
 ## Enche a depressao de cada peca ate o nivel da celula.
@@ -1378,7 +1509,9 @@ func _niveis_da_agua(grades: Dictionary) -> Dictionary:
 ## exatamente o que a peca escavou. Era a fita que deixava a peca de nascente
 ## seca, porque o poco dela e largo demais para uma faixa.
 func _montar_laminas(raiz: Node3D) -> void:
-	var lado_da_grade := 26
+	# A grade antiga de 26x26 gerava degraus de quase cinco metros e deixava a
+	# margem com aspecto quebrado. Em 128x128 cada amostra fica abaixo de um metro.
+	var lado_da_grade := 128
 	var grades := {}
 	for celula: Vector2i in _celulas_de_agua.keys():
 		grades[celula] = _grade_de_altura(celula, lado_da_grade)
@@ -1421,6 +1554,8 @@ func _montar_laminas(raiz: Node3D) -> void:
 			for _k in range(4):
 				normais.append(Vector3.UP)
 			indices.append_array([b, b + 2, b + 1, b, b + 3, b + 2])
+		if tipo == "rio":
+			_adicionar_curso_continuo(vertices, normais, indices, grades, niveis, lado_da_grade)
 		var malha := ArrayMesh.new()
 		var arrays: Array = []
 		arrays.resize(Mesh.ARRAY_MAX)
