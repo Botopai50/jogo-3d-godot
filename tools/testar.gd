@@ -98,11 +98,22 @@ func rodar() -> void:
 	checar(ilha.modulos_disponiveis() > 150,
 		"a ilha sorteia de um acervo amplo", "(%d modulos no build)" % ilha.modulos_disponiveis())
 
+	# Conta as pecas distintas em todo o cenario, nao so no terreno: montanhas,
+	# afloramentos, pedras, ilhotas e nuvens tambem saem do acervo.
 	var usados := {}
-	for modulo in terreno.get_children():
-		usados[modulo.scene_file_path] = true
+	var por_grupo := {}
+	var pilha_de_grupos: Array = [ilha]
+	while not pilha_de_grupos.is_empty():
+		var no: Node = pilha_de_grupos.pop_back()
+		for filho in no.get_children():
+			pilha_de_grupos.append(filho)
+		if no.scene_file_path != "":
+			usados[no.scene_file_path] = true
+			var pasta: String = no.scene_file_path.get_base_dir().get_file()
+			por_grupo[pasta] = int(por_grupo.get(pasta, 0)) + 1
+	print("  pecas colocadas por tipo: %s" % str(por_grupo))
 	print("  modulos distintos no mapa: %d de %d" % [usados.size(), ilha.modulos_disponiveis()])
-	checar(usados.size() > 20, "o mapa nao repete poucas pecas", "(%d distintos)" % usados.size())
+	checar(usados.size() > 60, "o mapa usa muitas pecas distintas", "(%d distintos)" % usados.size())
 
 	print("--- assentar no chao ---")
 	await avancar(90)

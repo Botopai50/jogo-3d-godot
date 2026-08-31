@@ -1,0 +1,3830 @@
+{
+  "ilhotas": [
+    {
+      "largura": 98.97,
+      "nome": "CPT_Island_L_a_01",
+      "y_max": 4.0,
+      "y_min": -6.06
+    },
+    {
+      "largura": 95.73,
+      "nome": "CPT_Island_L_a_02",
+      "y_max": 3.21,
+      "y_min": -5.5
+    },
+    {
+      "largura": 101.68,
+      "nome": "CPT_Island_L_a_03",
+      "y_max": 3.56,
+      "y_min": -5.33
+    },
+    {
+      "largura": 57.01,
+      "nome": "CPT_Island_L_a_04",
+      "y_max": 3.52,
+      "y_min": -5.72
+    },
+    {
+      "largura": 90.11,
+      "nome": "CPT_Island_L_a_05",
+      "y_max": 6.07,
+      "y_min": -5.76
+    },
+    {
+      "largura": 79.11,
+      "nome": "CPT_Island_L_a_06",
+      "y_max": 3.12,
+      "y_min": -5.44
+    },
+    {
+      "largura": 78.1,
+      "nome": "CPT_Island_L_a_07",
+      "y_max": 3.3,
+      "y_min": -5.54
+    },
+    {
+      "largura": 97.36,
+      "nome": "CPT_Island_L_a_08",
+      "y_max": 2.96,
+      "y_min": -5.59
+    },
+    {
+      "largura": 94.95,
+      "nome": "CPT_Island_L_a_09",
+      "y_max": 3.18,
+      "y_min": -6.11
+    },
+    {
+      "largura": 88.83,
+      "nome": "CPT_Island_L_a_10",
+      "y_max": 3.4,
+      "y_min": -5.89
+    },
+    {
+      "largura": 94.2,
+      "nome": "CPT_Island_L_a_11",
+      "y_max": 2.81,
+      "y_min": -5.62
+    },
+    {
+      "largura": 87.78,
+      "nome": "CPT_Island_L_a_12",
+      "y_max": 2.23,
+      "y_min": -6.84
+    },
+    {
+      "largura": 85.41,
+      "nome": "CPT_Island_L_a_13",
+      "y_max": 3.73,
+      "y_min": -5.93
+    },
+    {
+      "largura": 100.15,
+      "nome": "CPT_Island_L_a_14",
+      "y_max": 5.26,
+      "y_min": -5.56
+    },
+    {
+      "largura": 98.97,
+      "nome": "CPT_Island_L_b_01",
+      "y_max": 8.25,
+      "y_min": -6.06
+    },
+    {
+      "largura": 95.73,
+      "nome": "CPT_Island_L_b_02",
+      "y_max": 6.31,
+      "y_min": -5.5
+    },
+    {
+      "largura": 101.68,
+      "nome": "CPT_Island_L_b_03",
+      "y_max": 10.23,
+      "y_min": -5.33
+    },
+    {
+      "largura": 57.01,
+      "nome": "CPT_Island_L_b_04",
+      "y_max": 8.6,
+      "y_min": -5.72
+    },
+    {
+      "largura": 90.11,
+      "nome": "CPT_Island_L_b_05",
+      "y_max": 17.11,
+      "y_min": -5.76
+    },
+    {
+      "largura": 79.11,
+      "nome": "CPT_Island_L_b_06",
+      "y_max": 10.5,
+      "y_min": -5.44
+    },
+    {
+      "largura": 78.1,
+      "nome": "CPT_Island_L_b_07",
+      "y_max": 7.79,
+      "y_min": -5.54
+    },
+    {
+      "largura": 97.36,
+      "nome": "CPT_Island_L_b_08",
+      "y_max": 7.11,
+      "y_min": -5.59
+    },
+    {
+      "largura": 94.95,
+      "nome": "CPT_Island_L_b_09",
+      "y_max": 9.54,
+      "y_min": -6.11
+    },
+    {
+      "largura": 88.83,
+      "nome": "CPT_Island_L_b_10",
+      "y_max": 6.99,
+      "y_min": -5.89
+    },
+    {
+      "largura": 94.2,
+      "nome": "CPT_Island_L_b_11",
+      "y_max": 5.29,
+      "y_min": -5.62
+    },
+    {
+      "largura": 87.78,
+      "nome": "CPT_Island_L_b_12",
+      "y_max": 5.88,
+      "y_min": -6.84
+    },
+    {
+      "largura": 85.41,
+      "nome": "CPT_Island_L_b_13",
+      "y_max": 10.43,
+      "y_min": -5.93
+    },
+    {
+      "largura": 100.15,
+      "nome": "CPT_Island_L_b_14",
+      "y_max": 7.75,
+      "y_min": -5.56
+    },
+    {
+      "largura": 100.51,
+      "nome": "CPT_Island_L_c_01",
+      "y_max": 4.0,
+      "y_min": -6.13
+    },
+    {
+      "largura": 86.72,
+      "nome": "CPT_Island_L_c_02",
+      "y_max": 3.44,
+      "y_min": -5.61
+    },
+    {
+      "largura": 40.23,
+      "nome": "CPT_Island_L_c_03",
+      "y_max": 3.35,
+      "y_min": -5.77
+    },
+    {
+      "largura": 74.31,
+      "nome": "CPT_Island_L_c_04",
+      "y_max": 4.72,
+      "y_min": -5.24
+    },
+    {
+      "largura": 83.62,
+      "nome": "CPT_Island_L_c_05",
+      "y_max": 6.55,
+      "y_min": -5.91
+    },
+    {
+      "largura": 46.09,
+      "nome": "CPT_Island_L_c_06",
+      "y_max": 3.16,
+      "y_min": -5.85
+    },
+    {
+      "largura": 90.85,
+      "nome": "CPT_Island_L_c_07",
+      "y_max": 3.04,
+      "y_min": -5.93
+    },
+    {
+      "largura": 100.51,
+      "nome": "CPT_Island_L_d_01",
+      "y_max": 9.24,
+      "y_min": -6.13
+    },
+    {
+      "largura": 86.72,
+      "nome": "CPT_Island_L_d_02",
+      "y_max": 6.26,
+      "y_min": -5.61
+    },
+    {
+      "largura": 40.23,
+      "nome": "CPT_Island_L_d_03",
+      "y_max": 4.61,
+      "y_min": -5.77
+    },
+    {
+      "largura": 74.31,
+      "nome": "CPT_Island_L_d_04",
+      "y_max": 7.13,
+      "y_min": -5.24
+    },
+    {
+      "largura": 83.62,
+      "nome": "CPT_Island_L_d_05",
+      "y_max": 9.69,
+      "y_min": -5.91
+    },
+    {
+      "largura": 46.09,
+      "nome": "CPT_Island_L_d_06",
+      "y_max": 7.03,
+      "y_min": -5.85
+    },
+    {
+      "largura": 90.85,
+      "nome": "CPT_Island_L_d_07",
+      "y_max": 5.08,
+      "y_min": -7.26
+    },
+    {
+      "largura": 100.51,
+      "nome": "CPT_Island_L_e_01",
+      "y_max": 4.0,
+      "y_min": -6.13
+    },
+    {
+      "largura": 86.72,
+      "nome": "CPT_Island_L_e_02",
+      "y_max": 5.72,
+      "y_min": -5.61
+    },
+    {
+      "largura": 40.23,
+      "nome": "CPT_Island_L_e_03",
+      "y_max": 3.35,
+      "y_min": -5.77
+    },
+    {
+      "largura": 74.31,
+      "nome": "CPT_Island_L_e_04",
+      "y_max": 7.34,
+      "y_min": -5.69
+    },
+    {
+      "largura": 83.62,
+      "nome": "CPT_Island_L_e_05",
+      "y_max": 6.55,
+      "y_min": -5.91
+    },
+    {
+      "largura": 46.09,
+      "nome": "CPT_Island_L_e_06",
+      "y_max": 4.7,
+      "y_min": -5.85
+    },
+    {
+      "largura": 90.85,
+      "nome": "CPT_Island_L_e_07",
+      "y_max": 5.08,
+      "y_min": -7.26
+    },
+    {
+      "largura": 197.75,
+      "nome": "CPT_Island_L_f1_01",
+      "y_max": 26.21,
+      "y_min": -6.02
+    },
+    {
+      "largura": 196.26,
+      "nome": "CPT_Island_L_f1_02",
+      "y_max": 28.6,
+      "y_min": -5.81
+    },
+    {
+      "largura": 195.54,
+      "nome": "CPT_Island_L_f1_03",
+      "y_max": 20.64,
+      "y_min": -4.76
+    },
+    {
+      "largura": 200.0,
+      "nome": "CPT_Island_L_f1_04",
+      "y_max": 32.27,
+      "y_min": -4.98
+    },
+    {
+      "largura": 196.88,
+      "nome": "CPT_Island_L_f1_05",
+      "y_max": 20.01,
+      "y_min": -5.03
+    },
+    {
+      "largura": 193.29,
+      "nome": "CPT_Island_L_f1_06",
+      "y_max": 20.1,
+      "y_min": -5.15
+    },
+    {
+      "largura": 199.25,
+      "nome": "CPT_Island_L_f1_07",
+      "y_max": 13.67,
+      "y_min": -5.68
+    },
+    {
+      "largura": 198.66,
+      "nome": "CPT_Island_L_f1_08",
+      "y_max": 13.64,
+      "y_min": -6.53
+    },
+    {
+      "largura": 187.61,
+      "nome": "CPT_Island_L_f1_09",
+      "y_max": 10.0,
+      "y_min": -7.31
+    },
+    {
+      "largura": 174.61,
+      "nome": "CPT_Island_L_f1_10",
+      "y_max": 13.28,
+      "y_min": -4.52
+    },
+    {
+      "largura": 197.75,
+      "nome": "CPT_Island_L_f_01",
+      "y_max": 26.21,
+      "y_min": -6.02
+    },
+    {
+      "largura": 196.26,
+      "nome": "CPT_Island_L_f_02",
+      "y_max": 28.6,
+      "y_min": -5.81
+    },
+    {
+      "largura": 195.54,
+      "nome": "CPT_Island_L_f_03",
+      "y_max": 20.64,
+      "y_min": -4.76
+    },
+    {
+      "largura": 200.0,
+      "nome": "CPT_Island_L_f_04",
+      "y_max": 32.27,
+      "y_min": -4.98
+    },
+    {
+      "largura": 196.88,
+      "nome": "CPT_Island_L_f_05",
+      "y_max": 20.01,
+      "y_min": -5.03
+    },
+    {
+      "largura": 193.29,
+      "nome": "CPT_Island_L_f_06",
+      "y_max": 20.1,
+      "y_min": -5.15
+    },
+    {
+      "largura": 199.25,
+      "nome": "CPT_Island_L_f_07",
+      "y_max": 13.67,
+      "y_min": -5.68
+    },
+    {
+      "largura": 198.66,
+      "nome": "CPT_Island_L_f_08",
+      "y_max": 13.64,
+      "y_min": -6.53
+    },
+    {
+      "largura": 187.61,
+      "nome": "CPT_Island_L_f_09",
+      "y_max": 10.0,
+      "y_min": -7.31
+    },
+    {
+      "largura": 174.61,
+      "nome": "CPT_Island_L_f_10",
+      "y_max": 13.28,
+      "y_min": -4.52
+    },
+    {
+      "largura": 72.36,
+      "nome": "CPT_Island_M_a_01",
+      "y_max": 3.12,
+      "y_min": -6.22
+    },
+    {
+      "largura": 44.58,
+      "nome": "CPT_Island_M_a_02",
+      "y_max": 4.08,
+      "y_min": -5.74
+    },
+    {
+      "largura": 45.78,
+      "nome": "CPT_Island_M_a_03",
+      "y_max": 2.5,
+      "y_min": -5.47
+    },
+    {
+      "largura": 36.11,
+      "nome": "CPT_Island_M_a_04",
+      "y_max": 3.55,
+      "y_min": -5.54
+    },
+    {
+      "largura": 48.41,
+      "nome": "CPT_Island_M_a_05",
+      "y_max": 4.11,
+      "y_min": -5.48
+    },
+    {
+      "largura": 50.78,
+      "nome": "CPT_Island_M_c_01",
+      "y_max": 2.64,
+      "y_min": -5.87
+    },
+    {
+      "largura": 50.0,
+      "nome": "CPT_Island_M_c_02",
+      "y_max": 3.22,
+      "y_min": -5.56
+    },
+    {
+      "largura": 53.91,
+      "nome": "CPT_Island_M_c_03",
+      "y_max": 2.89,
+      "y_min": -5.73
+    },
+    {
+      "largura": 55.47,
+      "nome": "CPT_Island_M_c_04",
+      "y_max": 2.45,
+      "y_min": -5.65
+    },
+    {
+      "largura": 31.25,
+      "nome": "CPT_Island_S_c_01",
+      "y_max": 2.64,
+      "y_min": -5.88
+    },
+    {
+      "largura": 26.56,
+      "nome": "CPT_Island_S_c_02",
+      "y_max": 3.31,
+      "y_min": -5.91
+    },
+    {
+      "largura": 16.41,
+      "nome": "CPT_Island_S_c_03",
+      "y_max": 2.74,
+      "y_min": -5.77
+    },
+    {
+      "largura": 98.97,
+      "nome": "MT_Island_L_a_01",
+      "y_max": 4.0,
+      "y_min": -6.06
+    },
+    {
+      "largura": 95.73,
+      "nome": "MT_Island_L_a_02",
+      "y_max": 3.21,
+      "y_min": -5.5
+    },
+    {
+      "largura": 101.68,
+      "nome": "MT_Island_L_a_03",
+      "y_max": 3.56,
+      "y_min": -5.33
+    },
+    {
+      "largura": 57.01,
+      "nome": "MT_Island_L_a_04",
+      "y_max": 3.52,
+      "y_min": -5.72
+    },
+    {
+      "largura": 90.11,
+      "nome": "MT_Island_L_a_05",
+      "y_max": 6.07,
+      "y_min": -5.76
+    },
+    {
+      "largura": 79.11,
+      "nome": "MT_Island_L_a_06",
+      "y_max": 3.12,
+      "y_min": -5.44
+    },
+    {
+      "largura": 78.1,
+      "nome": "MT_Island_L_a_07",
+      "y_max": 3.3,
+      "y_min": -5.54
+    },
+    {
+      "largura": 97.36,
+      "nome": "MT_Island_L_a_08",
+      "y_max": 2.96,
+      "y_min": -5.59
+    },
+    {
+      "largura": 94.95,
+      "nome": "MT_Island_L_a_09",
+      "y_max": 3.18,
+      "y_min": -6.11
+    },
+    {
+      "largura": 88.83,
+      "nome": "MT_Island_L_a_10",
+      "y_max": 3.4,
+      "y_min": -5.89
+    },
+    {
+      "largura": 94.2,
+      "nome": "MT_Island_L_a_11",
+      "y_max": 2.81,
+      "y_min": -5.62
+    },
+    {
+      "largura": 87.78,
+      "nome": "MT_Island_L_a_12",
+      "y_max": 2.23,
+      "y_min": -6.84
+    },
+    {
+      "largura": 85.41,
+      "nome": "MT_Island_L_a_13",
+      "y_max": 3.73,
+      "y_min": -5.93
+    },
+    {
+      "largura": 100.15,
+      "nome": "MT_Island_L_a_14",
+      "y_max": 5.26,
+      "y_min": -5.56
+    },
+    {
+      "largura": 98.97,
+      "nome": "MT_Island_L_b_01",
+      "y_max": 8.25,
+      "y_min": -6.06
+    },
+    {
+      "largura": 95.73,
+      "nome": "MT_Island_L_b_02",
+      "y_max": 6.31,
+      "y_min": -5.5
+    },
+    {
+      "largura": 101.68,
+      "nome": "MT_Island_L_b_03",
+      "y_max": 10.23,
+      "y_min": -5.33
+    },
+    {
+      "largura": 57.01,
+      "nome": "MT_Island_L_b_04",
+      "y_max": 8.6,
+      "y_min": -5.72
+    },
+    {
+      "largura": 90.11,
+      "nome": "MT_Island_L_b_05",
+      "y_max": 17.11,
+      "y_min": -5.76
+    },
+    {
+      "largura": 79.11,
+      "nome": "MT_Island_L_b_06",
+      "y_max": 10.5,
+      "y_min": -5.44
+    },
+    {
+      "largura": 78.1,
+      "nome": "MT_Island_L_b_07",
+      "y_max": 7.79,
+      "y_min": -5.54
+    },
+    {
+      "largura": 97.36,
+      "nome": "MT_Island_L_b_08",
+      "y_max": 7.11,
+      "y_min": -5.59
+    },
+    {
+      "largura": 94.95,
+      "nome": "MT_Island_L_b_09",
+      "y_max": 9.54,
+      "y_min": -6.11
+    },
+    {
+      "largura": 88.83,
+      "nome": "MT_Island_L_b_10",
+      "y_max": 6.99,
+      "y_min": -5.89
+    },
+    {
+      "largura": 94.2,
+      "nome": "MT_Island_L_b_11",
+      "y_max": 5.29,
+      "y_min": -5.62
+    },
+    {
+      "largura": 87.78,
+      "nome": "MT_Island_L_b_12",
+      "y_max": 5.88,
+      "y_min": -6.84
+    },
+    {
+      "largura": 85.41,
+      "nome": "MT_Island_L_b_13",
+      "y_max": 10.43,
+      "y_min": -5.93
+    },
+    {
+      "largura": 100.15,
+      "nome": "MT_Island_L_b_14",
+      "y_max": 7.75,
+      "y_min": -5.56
+    },
+    {
+      "largura": 100.51,
+      "nome": "MT_Island_L_c_01",
+      "y_max": 4.0,
+      "y_min": -6.13
+    },
+    {
+      "largura": 86.72,
+      "nome": "MT_Island_L_c_02",
+      "y_max": 3.44,
+      "y_min": -5.61
+    },
+    {
+      "largura": 40.23,
+      "nome": "MT_Island_L_c_03",
+      "y_max": 3.35,
+      "y_min": -5.77
+    },
+    {
+      "largura": 74.31,
+      "nome": "MT_Island_L_c_04",
+      "y_max": 4.72,
+      "y_min": -5.24
+    },
+    {
+      "largura": 83.62,
+      "nome": "MT_Island_L_c_05",
+      "y_max": 6.55,
+      "y_min": -5.91
+    },
+    {
+      "largura": 46.09,
+      "nome": "MT_Island_L_c_06",
+      "y_max": 3.16,
+      "y_min": -5.85
+    },
+    {
+      "largura": 90.85,
+      "nome": "MT_Island_L_c_07",
+      "y_max": 3.04,
+      "y_min": -5.93
+    },
+    {
+      "largura": 100.51,
+      "nome": "MT_Island_L_d_01",
+      "y_max": 9.24,
+      "y_min": -6.13
+    },
+    {
+      "largura": 86.72,
+      "nome": "MT_Island_L_d_02",
+      "y_max": 6.26,
+      "y_min": -5.61
+    },
+    {
+      "largura": 40.23,
+      "nome": "MT_Island_L_d_03",
+      "y_max": 4.61,
+      "y_min": -5.77
+    },
+    {
+      "largura": 74.31,
+      "nome": "MT_Island_L_d_04",
+      "y_max": 7.13,
+      "y_min": -5.24
+    },
+    {
+      "largura": 83.62,
+      "nome": "MT_Island_L_d_05",
+      "y_max": 9.69,
+      "y_min": -5.91
+    },
+    {
+      "largura": 46.09,
+      "nome": "MT_Island_L_d_06",
+      "y_max": 7.03,
+      "y_min": -5.85
+    },
+    {
+      "largura": 90.85,
+      "nome": "MT_Island_L_d_07",
+      "y_max": 5.08,
+      "y_min": -7.26
+    },
+    {
+      "largura": 100.51,
+      "nome": "MT_Island_L_e_01",
+      "y_max": 4.0,
+      "y_min": -6.13
+    },
+    {
+      "largura": 86.72,
+      "nome": "MT_Island_L_e_02",
+      "y_max": 5.72,
+      "y_min": -5.61
+    },
+    {
+      "largura": 40.23,
+      "nome": "MT_Island_L_e_03",
+      "y_max": 3.35,
+      "y_min": -5.77
+    },
+    {
+      "largura": 74.31,
+      "nome": "MT_Island_L_e_04",
+      "y_max": 7.34,
+      "y_min": -5.69
+    },
+    {
+      "largura": 83.62,
+      "nome": "MT_Island_L_e_05",
+      "y_max": 6.55,
+      "y_min": -5.91
+    },
+    {
+      "largura": 46.09,
+      "nome": "MT_Island_L_e_06",
+      "y_max": 4.7,
+      "y_min": -5.85
+    },
+    {
+      "largura": 90.85,
+      "nome": "MT_Island_L_e_07",
+      "y_max": 5.08,
+      "y_min": -7.26
+    },
+    {
+      "largura": 197.75,
+      "nome": "MT_Island_L_f_01",
+      "y_max": 26.21,
+      "y_min": -6.02
+    },
+    {
+      "largura": 196.26,
+      "nome": "MT_Island_L_f_02",
+      "y_max": 28.6,
+      "y_min": -5.81
+    },
+    {
+      "largura": 195.54,
+      "nome": "MT_Island_L_f_03",
+      "y_max": 20.64,
+      "y_min": -4.76
+    },
+    {
+      "largura": 200.0,
+      "nome": "MT_Island_L_f_04",
+      "y_max": 32.27,
+      "y_min": -4.98
+    },
+    {
+      "largura": 196.88,
+      "nome": "MT_Island_L_f_05",
+      "y_max": 20.01,
+      "y_min": -5.03
+    },
+    {
+      "largura": 193.29,
+      "nome": "MT_Island_L_f_06",
+      "y_max": 20.1,
+      "y_min": -5.15
+    },
+    {
+      "largura": 199.25,
+      "nome": "MT_Island_L_f_07",
+      "y_max": 13.67,
+      "y_min": -5.68
+    },
+    {
+      "largura": 198.66,
+      "nome": "MT_Island_L_f_08",
+      "y_max": 13.64,
+      "y_min": -6.53
+    },
+    {
+      "largura": 187.61,
+      "nome": "MT_Island_L_f_09",
+      "y_max": 10.0,
+      "y_min": -7.31
+    },
+    {
+      "largura": 174.61,
+      "nome": "MT_Island_L_f_10",
+      "y_max": 13.28,
+      "y_min": -4.52
+    },
+    {
+      "largura": 197.39,
+      "nome": "MT_Island_L_f_11",
+      "y_max": 14.61,
+      "y_min": -6.54
+    },
+    {
+      "largura": 72.36,
+      "nome": "MT_Island_M_a_01",
+      "y_max": 3.12,
+      "y_min": -6.22
+    },
+    {
+      "largura": 44.58,
+      "nome": "MT_Island_M_a_02",
+      "y_max": 4.08,
+      "y_min": -5.74
+    },
+    {
+      "largura": 45.78,
+      "nome": "MT_Island_M_a_03",
+      "y_max": 2.5,
+      "y_min": -5.47
+    },
+    {
+      "largura": 36.11,
+      "nome": "MT_Island_M_a_04",
+      "y_max": 3.55,
+      "y_min": -5.54
+    },
+    {
+      "largura": 48.41,
+      "nome": "MT_Island_M_a_05",
+      "y_max": 4.11,
+      "y_min": -5.48
+    },
+    {
+      "largura": 50.78,
+      "nome": "MT_Island_M_c_01",
+      "y_max": 2.64,
+      "y_min": -5.87
+    },
+    {
+      "largura": 50.0,
+      "nome": "MT_Island_M_c_02",
+      "y_max": 3.22,
+      "y_min": -5.56
+    },
+    {
+      "largura": 53.91,
+      "nome": "MT_Island_M_c_03",
+      "y_max": 2.89,
+      "y_min": -5.73
+    },
+    {
+      "largura": 55.47,
+      "nome": "MT_Island_M_c_04",
+      "y_max": 2.45,
+      "y_min": -5.65
+    },
+    {
+      "largura": 31.25,
+      "nome": "MT_Island_S_c_01",
+      "y_max": 2.64,
+      "y_min": -5.88
+    },
+    {
+      "largura": 26.56,
+      "nome": "MT_Island_S_c_02",
+      "y_max": 3.31,
+      "y_min": -5.91
+    },
+    {
+      "largura": 16.41,
+      "nome": "MT_Island_S_c_03",
+      "y_max": 2.74,
+      "y_min": -5.77
+    }
+  ],
+  "nuvens": [
+    {
+      "largura": 8.33,
+      "nome": "Cloud_01",
+      "y_max": 2.54,
+      "y_min": -2.49
+    },
+    {
+      "largura": 15.05,
+      "nome": "Cloud_02",
+      "y_max": 4.5,
+      "y_min": -3.85
+    },
+    {
+      "largura": 26.61,
+      "nome": "Cloud_03",
+      "y_max": 3.62,
+      "y_min": -3.43
+    },
+    {
+      "largura": 27.19,
+      "nome": "Cloud_04",
+      "y_max": 14.98,
+      "y_min": -5.54
+    }
+  ],
+  "props": [
+    {
+      "largura": 89.06,
+      "nome": "CPT_Mountain_L_a_01",
+      "y_max": 20.21,
+      "y_min": -0.82
+    },
+    {
+      "largura": 88.64,
+      "nome": "CPT_Mountain_L_a_02",
+      "y_max": 12.33,
+      "y_min": -1.13
+    },
+    {
+      "largura": 84.38,
+      "nome": "CPT_Mountain_L_a_03",
+      "y_max": 10.41,
+      "y_min": -1.91
+    },
+    {
+      "largura": 85.59,
+      "nome": "CPT_Mountain_L_a_04",
+      "y_max": 13.08,
+      "y_min": -1.8
+    },
+    {
+      "largura": 75.73,
+      "nome": "CPT_Mountain_L_a_05",
+      "y_max": 12.59,
+      "y_min": -1.12
+    },
+    {
+      "largura": 83.01,
+      "nome": "CPT_Mountain_L_a_06",
+      "y_max": 16.03,
+      "y_min": -1.3
+    },
+    {
+      "largura": 75.02,
+      "nome": "CPT_Mountain_L_a_07",
+      "y_max": 9.35,
+      "y_min": -0.76
+    },
+    {
+      "largura": 93.75,
+      "nome": "CPT_Mountain_L_a_08",
+      "y_max": 17.26,
+      "y_min": -0.98
+    },
+    {
+      "largura": 78.53,
+      "nome": "CPT_Mountain_L_a_09",
+      "y_max": 20.21,
+      "y_min": -2.45
+    },
+    {
+      "largura": 76.56,
+      "nome": "CPT_Mountain_L_a_10",
+      "y_max": 21.84,
+      "y_min": -1.91
+    },
+    {
+      "largura": 86.33,
+      "nome": "CPT_Mountain_L_a_11",
+      "y_max": 20.65,
+      "y_min": -1.58
+    },
+    {
+      "largura": 78.32,
+      "nome": "CPT_Mountain_L_a_12",
+      "y_max": 19.98,
+      "y_min": -1.55
+    },
+    {
+      "largura": 77.35,
+      "nome": "CPT_Mountain_L_a_13",
+      "y_max": 29.22,
+      "y_min": -2.27
+    },
+    {
+      "largura": 64.1,
+      "nome": "CPT_Mountain_L_a_14",
+      "y_max": 18.0,
+      "y_min": -3.29
+    },
+    {
+      "largura": 96.06,
+      "nome": "CPT_Mountain_L_a_15",
+      "y_max": 14.07,
+      "y_min": -1.93
+    },
+    {
+      "largura": 94.11,
+      "nome": "CPT_Mountain_L_a_16",
+      "y_max": 15.48,
+      "y_min": -1.64
+    },
+    {
+      "largura": 91.02,
+      "nome": "CPT_Mountain_L_a_17",
+      "y_max": 12.75,
+      "y_min": -2.16
+    },
+    {
+      "largura": 92.52,
+      "nome": "CPT_Mountain_L_a_18",
+      "y_max": 15.14,
+      "y_min": -1.5
+    },
+    {
+      "largura": 86.82,
+      "nome": "CPT_Mountain_L_a_19",
+      "y_max": 16.82,
+      "y_min": -1.59
+    },
+    {
+      "largura": 92.97,
+      "nome": "CPT_Mountain_L_a_20",
+      "y_max": 17.17,
+      "y_min": -1.68
+    },
+    {
+      "largura": 83.78,
+      "nome": "CPT_Mountain_L_a_21",
+      "y_max": 25.42,
+      "y_min": -2.03
+    },
+    {
+      "largura": 78.05,
+      "nome": "CPT_Mountain_L_a_22",
+      "y_max": 17.2,
+      "y_min": -0.96
+    },
+    {
+      "largura": 90.3,
+      "nome": "CPT_Mountain_L_a_23",
+      "y_max": 22.71,
+      "y_min": -1.16
+    },
+    {
+      "largura": 86.71,
+      "nome": "CPT_Mountain_L_a_24",
+      "y_max": 18.81,
+      "y_min": -1.44
+    },
+    {
+      "largura": 84.68,
+      "nome": "CPT_Mountain_L_a_25",
+      "y_max": 17.66,
+      "y_min": -1.04
+    },
+    {
+      "largura": 82.8,
+      "nome": "CPT_Mountain_L_a_26",
+      "y_max": 15.59,
+      "y_min": -1.03
+    },
+    {
+      "largura": 89.06,
+      "nome": "CPT_Mountain_L_a_27",
+      "y_max": 37.06,
+      "y_min": -1.41
+    },
+    {
+      "largura": 86.58,
+      "nome": "CPT_Mountain_L_a_28",
+      "y_max": 25.49,
+      "y_min": -1.54
+    },
+    {
+      "largura": 90.23,
+      "nome": "CPT_Mountain_L_a_29",
+      "y_max": 25.6,
+      "y_min": -1.49
+    },
+    {
+      "largura": 85.54,
+      "nome": "CPT_Mountain_L_a_30",
+      "y_max": 23.2,
+      "y_min": -0.85
+    },
+    {
+      "largura": 88.4,
+      "nome": "CPT_Mountain_L_a_31",
+      "y_max": 27.03,
+      "y_min": -1.54
+    },
+    {
+      "largura": 75.72,
+      "nome": "CPT_Mountain_L_a_32",
+      "y_max": 18.15,
+      "y_min": -0.9
+    },
+    {
+      "largura": 77.27,
+      "nome": "CPT_Mountain_L_a_33",
+      "y_max": 18.33,
+      "y_min": -0.97
+    },
+    {
+      "largura": 89.06,
+      "nome": "CPT_Mountain_L_a_34",
+      "y_max": 43.67,
+      "y_min": -1.33
+    },
+    {
+      "largura": 80.37,
+      "nome": "CPT_Mountain_L_a_35",
+      "y_max": 15.19,
+      "y_min": -1.03
+    },
+    {
+      "largura": 86.71,
+      "nome": "CPT_Mountain_L_a_36",
+      "y_max": 20.57,
+      "y_min": -1.21
+    },
+    {
+      "largura": 86.66,
+      "nome": "CPT_Mountain_L_a_37",
+      "y_max": 21.01,
+      "y_min": -1.01
+    },
+    {
+      "largura": 100.0,
+      "nome": "CPT_Mountain_L_a_38",
+      "y_max": 39.08,
+      "y_min": -1.52
+    },
+    {
+      "largura": 99.99,
+      "nome": "CPT_Mountain_L_a_39",
+      "y_max": 25.22,
+      "y_min": -1.8
+    },
+    {
+      "largura": 98.24,
+      "nome": "CPT_Mountain_L_a_40",
+      "y_max": 33.98,
+      "y_min": -2.58
+    },
+    {
+      "largura": 104.96,
+      "nome": "CPT_Mountain_L_a_41",
+      "y_max": 26.27,
+      "y_min": -2.79
+    },
+    {
+      "largura": 98.14,
+      "nome": "CPT_Mountain_L_a_42",
+      "y_max": 38.18,
+      "y_min": -1.73
+    },
+    {
+      "largura": 95.37,
+      "nome": "CPT_Mountain_L_a_43",
+      "y_max": 54.28,
+      "y_min": -2.36
+    },
+    {
+      "largura": 97.08,
+      "nome": "CPT_Mountain_L_a_44",
+      "y_max": 46.03,
+      "y_min": -2.38
+    },
+    {
+      "largura": 94.39,
+      "nome": "CPT_Mountain_L_a_45",
+      "y_max": 21.72,
+      "y_min": -1.91
+    },
+    {
+      "largura": 79.69,
+      "nome": "CPT_Mountain_L_b_01",
+      "y_max": 11.56,
+      "y_min": -1.06
+    },
+    {
+      "largura": 92.17,
+      "nome": "CPT_Mountain_L_b_02",
+      "y_max": 8.96,
+      "y_min": -1.49
+    },
+    {
+      "largura": 90.63,
+      "nome": "CPT_Mountain_L_b_03",
+      "y_max": 12.29,
+      "y_min": -2.03
+    },
+    {
+      "largura": 74.89,
+      "nome": "CPT_Mountain_L_b_04",
+      "y_max": 4.41,
+      "y_min": -1.49
+    },
+    {
+      "largura": 76.16,
+      "nome": "CPT_Mountain_L_b_05",
+      "y_max": 5.54,
+      "y_min": -1.24
+    },
+    {
+      "largura": 58.98,
+      "nome": "CPT_Mountain_L_b_06",
+      "y_max": 4.27,
+      "y_min": -1.76
+    },
+    {
+      "largura": 50.0,
+      "nome": "CPT_Mountain_L_b_07",
+      "y_max": 3.04,
+      "y_min": -2.1
+    },
+    {
+      "largura": 80.08,
+      "nome": "CPT_Mountain_L_b_08",
+      "y_max": 4.27,
+      "y_min": -2.1
+    },
+    {
+      "largura": 89.22,
+      "nome": "CPT_Mountain_L_b_09",
+      "y_max": 7.21,
+      "y_min": -2.0
+    },
+    {
+      "largura": 82.39,
+      "nome": "CPT_Mountain_L_b_10",
+      "y_max": 7.82,
+      "y_min": -1.07
+    },
+    {
+      "largura": 87.11,
+      "nome": "CPT_Mountain_L_b_11",
+      "y_max": 8.14,
+      "y_min": -1.69
+    },
+    {
+      "largura": 75.43,
+      "nome": "CPT_Mountain_L_b_12",
+      "y_max": 5.87,
+      "y_min": -0.58
+    },
+    {
+      "largura": 60.22,
+      "nome": "CPT_Mountain_L_b_13",
+      "y_max": 5.87,
+      "y_min": -0.54
+    },
+    {
+      "largura": 39.66,
+      "nome": "CPT_Mountain_L_b_14",
+      "y_max": 4.39,
+      "y_min": -1.14
+    },
+    {
+      "largura": 35.15,
+      "nome": "CPT_Mountain_L_b_15",
+      "y_max": 6.23,
+      "y_min": -0.89
+    },
+    {
+      "largura": 40.62,
+      "nome": "CPT_Mountain_L_b_16",
+      "y_max": 5.57,
+      "y_min": -1.19
+    },
+    {
+      "largura": 41.45,
+      "nome": "CPT_Mountain_L_b_17",
+      "y_max": 5.63,
+      "y_min": -2.1
+    },
+    {
+      "largura": 50.68,
+      "nome": "CPT_Mountain_L_b_18",
+      "y_max": 4.96,
+      "y_min": -1.03
+    },
+    {
+      "largura": 48.63,
+      "nome": "CPT_Mountain_L_b_19",
+      "y_max": 7.44,
+      "y_min": -2.54
+    },
+    {
+      "largura": 89.84,
+      "nome": "CPT_Mountain_L_b_20",
+      "y_max": 16.01,
+      "y_min": -1.1
+    },
+    {
+      "largura": 88.64,
+      "nome": "CPT_Mountain_L_b_21",
+      "y_max": 21.04,
+      "y_min": -1.46
+    },
+    {
+      "largura": 70.31,
+      "nome": "CPT_Mountain_L_b_22",
+      "y_max": 16.61,
+      "y_min": -1.42
+    },
+    {
+      "largura": 84.03,
+      "nome": "CPT_Mountain_L_b_23",
+      "y_max": 24.14,
+      "y_min": -1.87
+    },
+    {
+      "largura": 96.2,
+      "nome": "CPT_Mountain_L_b_24",
+      "y_max": 23.0,
+      "y_min": -2.0
+    },
+    {
+      "largura": 86.48,
+      "nome": "CPT_Mountain_L_b_25",
+      "y_max": 23.2,
+      "y_min": -0.95
+    },
+    {
+      "largura": 92.8,
+      "nome": "CPT_Mountain_L_b_26",
+      "y_max": 35.97,
+      "y_min": -2.67
+    },
+    {
+      "largura": 86.94,
+      "nome": "CPT_Mountain_L_b_27",
+      "y_max": 28.79,
+      "y_min": -1.63
+    },
+    {
+      "largura": 76.16,
+      "nome": "CPT_Mountain_L_c_01",
+      "y_max": 12.65,
+      "y_min": -2.88
+    },
+    {
+      "largura": 92.06,
+      "nome": "CPT_Mountain_L_c_02",
+      "y_max": 8.35,
+      "y_min": -1.15
+    },
+    {
+      "largura": 94.99,
+      "nome": "CPT_Mountain_L_c_03",
+      "y_max": 13.04,
+      "y_min": -1.42
+    },
+    {
+      "largura": 73.96,
+      "nome": "CPT_Mountain_L_c_04",
+      "y_max": 3.98,
+      "y_min": -1.72
+    },
+    {
+      "largura": 80.87,
+      "nome": "CPT_Mountain_L_c_05",
+      "y_max": 8.02,
+      "y_min": -1.11
+    },
+    {
+      "largura": 80.08,
+      "nome": "CPT_Mountain_L_c_06",
+      "y_max": 4.83,
+      "y_min": -0.62
+    },
+    {
+      "largura": 89.62,
+      "nome": "CPT_Mountain_L_c_07",
+      "y_max": 6.64,
+      "y_min": -1.5
+    },
+    {
+      "largura": 94.95,
+      "nome": "CPT_Mountain_L_c_08",
+      "y_max": 7.51,
+      "y_min": -0.68
+    },
+    {
+      "largura": 88.29,
+      "nome": "CPT_Mountain_L_c_09",
+      "y_max": 8.68,
+      "y_min": -1.31
+    },
+    {
+      "largura": 77.72,
+      "nome": "CPT_Mountain_L_c_10",
+      "y_max": 6.29,
+      "y_min": -1.27
+    },
+    {
+      "largura": 36.77,
+      "nome": "CPT_Mountain_L_c_11",
+      "y_max": 4.49,
+      "y_min": -1.26
+    },
+    {
+      "largura": 39.06,
+      "nome": "CPT_Mountain_L_c_12",
+      "y_max": 4.64,
+      "y_min": -0.71
+    },
+    {
+      "largura": 44.55,
+      "nome": "CPT_Mountain_L_c_13",
+      "y_max": 4.27,
+      "y_min": -0.66
+    },
+    {
+      "largura": 44.61,
+      "nome": "CPT_Mountain_L_c_14",
+      "y_max": 5.14,
+      "y_min": -1.02
+    },
+    {
+      "largura": 33.63,
+      "nome": "CPT_Mountain_L_c_15",
+      "y_max": 7.67,
+      "y_min": -1.36
+    },
+    {
+      "largura": 50.15,
+      "nome": "CPT_Mountain_L_c_16",
+      "y_max": 6.88,
+      "y_min": -1.0
+    },
+    {
+      "largura": 84.91,
+      "nome": "CPT_Mountain_L_d_01",
+      "y_max": 14.86,
+      "y_min": -4.67
+    },
+    {
+      "largura": 95.06,
+      "nome": "CPT_Mountain_L_d_02",
+      "y_max": 27.2,
+      "y_min": -2.86
+    },
+    {
+      "largura": 95.17,
+      "nome": "CPT_Mountain_L_d_03",
+      "y_max": 21.89,
+      "y_min": -2.14
+    },
+    {
+      "largura": 99.59,
+      "nome": "CPT_Mountain_L_d_04",
+      "y_max": 33.3,
+      "y_min": -1.63
+    },
+    {
+      "largura": 96.54,
+      "nome": "CPT_Mountain_L_d_05",
+      "y_max": 32.51,
+      "y_min": -1.79
+    },
+    {
+      "largura": 98.0,
+      "nome": "CPT_Mountain_L_d_06",
+      "y_max": 35.42,
+      "y_min": -2.01
+    },
+    {
+      "largura": 97.99,
+      "nome": "CPT_Mountain_L_d_07",
+      "y_max": 30.53,
+      "y_min": -1.48
+    },
+    {
+      "largura": 96.87,
+      "nome": "CPT_Mountain_L_e_01",
+      "y_max": 34.81,
+      "y_min": -1.41
+    },
+    {
+      "largura": 96.17,
+      "nome": "CPT_Mountain_L_e_02",
+      "y_max": 22.71,
+      "y_min": -1.33
+    },
+    {
+      "largura": 97.0,
+      "nome": "CPT_Mountain_L_e_03",
+      "y_max": 15.8,
+      "y_min": -1.31
+    },
+    {
+      "largura": 95.71,
+      "nome": "CPT_Mountain_L_e_04",
+      "y_max": 32.01,
+      "y_min": -1.26
+    },
+    {
+      "largura": 42.58,
+      "nome": "CPT_Mountain_M_a_01",
+      "y_max": 1.39,
+      "y_min": -0.4
+    },
+    {
+      "largura": 46.06,
+      "nome": "CPT_Mountain_M_a_02",
+      "y_max": 2.76,
+      "y_min": -0.4
+    },
+    {
+      "largura": 42.2,
+      "nome": "CPT_Mountain_M_a_03",
+      "y_max": 3.29,
+      "y_min": -0.39
+    },
+    {
+      "largura": 46.48,
+      "nome": "CPT_Mountain_M_a_04",
+      "y_max": 3.64,
+      "y_min": -0.45
+    },
+    {
+      "largura": 45.31,
+      "nome": "CPT_Mountain_M_a_05",
+      "y_max": 4.44,
+      "y_min": -0.29
+    },
+    {
+      "largura": 34.38,
+      "nome": "CPT_Mountain_M_a_06",
+      "y_max": 3.76,
+      "y_min": -0.28
+    },
+    {
+      "largura": 45.31,
+      "nome": "CPT_Mountain_M_a_07",
+      "y_max": 4.27,
+      "y_min": -0.41
+    },
+    {
+      "largura": 48.44,
+      "nome": "CPT_Mountain_M_a_08",
+      "y_max": 6.23,
+      "y_min": -0.43
+    },
+    {
+      "largura": 42.97,
+      "nome": "CPT_Mountain_M_a_09",
+      "y_max": 5.88,
+      "y_min": -0.43
+    },
+    {
+      "largura": 43.75,
+      "nome": "CPT_Mountain_M_a_10",
+      "y_max": 6.8,
+      "y_min": -0.56
+    },
+    {
+      "largura": 41.8,
+      "nome": "CPT_Mountain_M_a_11",
+      "y_max": 3.31,
+      "y_min": -0.51
+    },
+    {
+      "largura": 39.84,
+      "nome": "CPT_Mountain_M_a_12",
+      "y_max": 5.42,
+      "y_min": -0.54
+    },
+    {
+      "largura": 41.69,
+      "nome": "CPT_Mountain_M_a_13",
+      "y_max": 5.93,
+      "y_min": -0.52
+    },
+    {
+      "largura": 39.45,
+      "nome": "CPT_Mountain_M_a_14",
+      "y_max": 3.47,
+      "y_min": -0.43
+    },
+    {
+      "largura": 46.87,
+      "nome": "CPT_Mountain_M_a_15",
+      "y_max": 3.83,
+      "y_min": -0.89
+    },
+    {
+      "largura": 43.75,
+      "nome": "CPT_Mountain_M_a_16",
+      "y_max": 6.84,
+      "y_min": -0.6
+    },
+    {
+      "largura": 48.05,
+      "nome": "CPT_Mountain_M_a_17",
+      "y_max": 10.14,
+      "y_min": -0.8
+    },
+    {
+      "largura": 46.88,
+      "nome": "CPT_Mountain_M_a_18",
+      "y_max": 9.09,
+      "y_min": -0.57
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_a_19",
+      "y_max": 15.79,
+      "y_min": -0.63
+    },
+    {
+      "largura": 46.88,
+      "nome": "CPT_Mountain_M_a_20",
+      "y_max": 8.62,
+      "y_min": -0.49
+    },
+    {
+      "largura": 39.85,
+      "nome": "CPT_Mountain_M_a_21",
+      "y_max": 8.26,
+      "y_min": -0.52
+    },
+    {
+      "largura": 47.91,
+      "nome": "CPT_Mountain_M_a_22",
+      "y_max": 6.06,
+      "y_min": -0.49
+    },
+    {
+      "largura": 47.52,
+      "nome": "CPT_Mountain_M_a_23",
+      "y_max": 9.45,
+      "y_min": -1.16
+    },
+    {
+      "largura": 34.36,
+      "nome": "CPT_Mountain_M_b_01",
+      "y_max": 2.43,
+      "y_min": -0.37
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_b_02",
+      "y_max": 3.67,
+      "y_min": -0.28
+    },
+    {
+      "largura": 39.45,
+      "nome": "CPT_Mountain_M_b_03",
+      "y_max": 2.98,
+      "y_min": -0.3
+    },
+    {
+      "largura": 39.84,
+      "nome": "CPT_Mountain_M_b_04",
+      "y_max": 2.63,
+      "y_min": -0.47
+    },
+    {
+      "largura": 41.41,
+      "nome": "CPT_Mountain_M_b_05",
+      "y_max": 4.7,
+      "y_min": -0.41
+    },
+    {
+      "largura": 41.8,
+      "nome": "CPT_Mountain_M_b_06",
+      "y_max": 4.74,
+      "y_min": -0.24
+    },
+    {
+      "largura": 46.09,
+      "nome": "CPT_Mountain_M_b_07",
+      "y_max": 3.44,
+      "y_min": -0.45
+    },
+    {
+      "largura": 46.88,
+      "nome": "CPT_Mountain_M_b_08",
+      "y_max": 3.97,
+      "y_min": -0.37
+    },
+    {
+      "largura": 46.09,
+      "nome": "CPT_Mountain_M_b_09",
+      "y_max": 4.44,
+      "y_min": -0.43
+    },
+    {
+      "largura": 41.41,
+      "nome": "CPT_Mountain_M_b_10",
+      "y_max": 6.28,
+      "y_min": -0.54
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_b_11",
+      "y_max": 3.12,
+      "y_min": -0.32
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_b_12",
+      "y_max": 5.23,
+      "y_min": -0.27
+    },
+    {
+      "largura": 48.44,
+      "nome": "CPT_Mountain_M_b_13",
+      "y_max": 4.07,
+      "y_min": -0.43
+    },
+    {
+      "largura": 32.03,
+      "nome": "CPT_Mountain_M_b_14",
+      "y_max": 3.86,
+      "y_min": -0.45
+    },
+    {
+      "largura": 42.19,
+      "nome": "CPT_Mountain_M_b_15",
+      "y_max": 3.94,
+      "y_min": -0.55
+    },
+    {
+      "largura": 39.06,
+      "nome": "CPT_Mountain_M_b_16",
+      "y_max": 4.1,
+      "y_min": -0.31
+    },
+    {
+      "largura": 39.06,
+      "nome": "CPT_Mountain_M_b_17",
+      "y_max": 6.7,
+      "y_min": -0.61
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_b_18",
+      "y_max": 4.25,
+      "y_min": -0.45
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_b_19",
+      "y_max": 5.56,
+      "y_min": -0.37
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_b_20",
+      "y_max": 3.89,
+      "y_min": -0.38
+    },
+    {
+      "largura": 46.63,
+      "nome": "CPT_Mountain_M_b_21",
+      "y_max": 7.62,
+      "y_min": -0.82
+    },
+    {
+      "largura": 30.73,
+      "nome": "CPT_Mountain_M_b_22",
+      "y_max": 4.35,
+      "y_min": -0.65
+    },
+    {
+      "largura": 33.59,
+      "nome": "CPT_Mountain_M_c_01",
+      "y_max": 2.61,
+      "y_min": -0.45
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_c_02",
+      "y_max": 3.54,
+      "y_min": -0.37
+    },
+    {
+      "largura": 42.19,
+      "nome": "CPT_Mountain_M_c_03",
+      "y_max": 2.98,
+      "y_min": -0.38
+    },
+    {
+      "largura": 41.8,
+      "nome": "CPT_Mountain_M_c_04",
+      "y_max": 2.68,
+      "y_min": -0.52
+    },
+    {
+      "largura": 41.41,
+      "nome": "CPT_Mountain_M_c_05",
+      "y_max": 4.7,
+      "y_min": -0.51
+    },
+    {
+      "largura": 44.14,
+      "nome": "CPT_Mountain_M_c_06",
+      "y_max": 4.54,
+      "y_min": -0.62
+    },
+    {
+      "largura": 48.44,
+      "nome": "CPT_Mountain_M_c_07",
+      "y_max": 3.33,
+      "y_min": -0.57
+    },
+    {
+      "largura": 46.88,
+      "nome": "CPT_Mountain_M_c_08",
+      "y_max": 3.67,
+      "y_min": -0.5
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_c_09",
+      "y_max": 4.21,
+      "y_min": -0.52
+    },
+    {
+      "largura": 46.88,
+      "nome": "CPT_Mountain_M_c_10",
+      "y_max": 6.28,
+      "y_min": -0.45
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_c_11",
+      "y_max": 3.24,
+      "y_min": -0.59
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_c_12",
+      "y_max": 4.87,
+      "y_min": -0.39
+    },
+    {
+      "largura": 48.05,
+      "nome": "CPT_Mountain_M_c_13",
+      "y_max": 4.05,
+      "y_min": -0.35
+    },
+    {
+      "largura": 32.81,
+      "nome": "CPT_Mountain_M_c_14",
+      "y_max": 3.71,
+      "y_min": -0.83
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_c_15",
+      "y_max": 3.8,
+      "y_min": -0.64
+    },
+    {
+      "largura": 42.97,
+      "nome": "CPT_Mountain_M_c_16",
+      "y_max": 4.29,
+      "y_min": -0.37
+    },
+    {
+      "largura": 39.06,
+      "nome": "CPT_Mountain_M_c_17",
+      "y_max": 6.14,
+      "y_min": -0.32
+    },
+    {
+      "largura": 46.09,
+      "nome": "CPT_Mountain_M_c_18",
+      "y_max": 4.25,
+      "y_min": -0.28
+    },
+    {
+      "largura": 44.53,
+      "nome": "CPT_Mountain_M_c_19",
+      "y_max": 5.25,
+      "y_min": -0.35
+    },
+    {
+      "largura": 45.71,
+      "nome": "CPT_Mountain_M_c_20",
+      "y_max": 4.1,
+      "y_min": -0.45
+    },
+    {
+      "largura": 46.88,
+      "nome": "CPT_Mountain_M_c_21",
+      "y_max": 7.62,
+      "y_min": -0.39
+    },
+    {
+      "largura": 33.11,
+      "nome": "CPT_Mountain_M_c_22",
+      "y_max": 4.09,
+      "y_min": -0.44
+    },
+    {
+      "largura": 17.58,
+      "nome": "CPT_Mountain_S_a_01",
+      "y_max": 1.36,
+      "y_min": -0.53
+    },
+    {
+      "largura": 16.8,
+      "nome": "CPT_Mountain_S_a_02",
+      "y_max": 1.28,
+      "y_min": -0.34
+    },
+    {
+      "largura": 21.09,
+      "nome": "CPT_Mountain_S_a_03",
+      "y_max": 1.92,
+      "y_min": -0.45
+    },
+    {
+      "largura": 23.05,
+      "nome": "CPT_Mountain_S_a_04",
+      "y_max": 1.39,
+      "y_min": -0.37
+    },
+    {
+      "largura": 17.78,
+      "nome": "CPT_Mountain_S_a_05",
+      "y_max": 1.16,
+      "y_min": -0.16
+    },
+    {
+      "largura": 20.7,
+      "nome": "CPT_Mountain_S_a_06",
+      "y_max": 1.1,
+      "y_min": -0.41
+    },
+    {
+      "largura": 18.75,
+      "nome": "CPT_Mountain_S_a_07",
+      "y_max": 2.32,
+      "y_min": -0.42
+    },
+    {
+      "largura": 18.77,
+      "nome": "CPT_Mountain_S_a_08",
+      "y_max": 3.56,
+      "y_min": -0.33
+    },
+    {
+      "largura": 23.18,
+      "nome": "CPT_Mountain_S_a_09",
+      "y_max": 3.92,
+      "y_min": -0.36
+    },
+    {
+      "largura": 20.7,
+      "nome": "CPT_Mountain_S_a_10",
+      "y_max": 2.73,
+      "y_min": -0.44
+    },
+    {
+      "largura": 21.11,
+      "nome": "CPT_Mountain_S_a_11",
+      "y_max": 1.25,
+      "y_min": -0.46
+    },
+    {
+      "largura": 17.58,
+      "nome": "CPT_Mountain_S_a_12",
+      "y_max": 3.78,
+      "y_min": -0.35
+    },
+    {
+      "largura": 18.8,
+      "nome": "CPT_Mountain_S_a_13",
+      "y_max": 5.13,
+      "y_min": -0.22
+    },
+    {
+      "largura": 23.05,
+      "nome": "CPT_Mountain_S_a_14",
+      "y_max": 1.6,
+      "y_min": -0.25
+    },
+    {
+      "largura": 23.05,
+      "nome": "CPT_Mountain_S_a_15",
+      "y_max": 1.94,
+      "y_min": -0.35
+    },
+    {
+      "largura": 20.7,
+      "nome": "CPT_Mountain_S_a_16",
+      "y_max": 5.77,
+      "y_min": -0.17
+    },
+    {
+      "largura": 23.05,
+      "nome": "CPT_Mountain_S_a_17",
+      "y_max": 5.05,
+      "y_min": -0.16
+    },
+    {
+      "largura": 16.8,
+      "nome": "CPT_Mountain_S_a_18",
+      "y_max": 3.47,
+      "y_min": -0.3
+    },
+    {
+      "largura": 18.75,
+      "nome": "CPT_Mountain_S_a_19",
+      "y_max": 3.41,
+      "y_min": -0.19
+    },
+    {
+      "largura": 20.7,
+      "nome": "CPT_Mountain_S_a_20",
+      "y_max": 3.64,
+      "y_min": -0.22
+    },
+    {
+      "largura": 20.12,
+      "nome": "CPT_Mountain_S_a_21",
+      "y_max": 3.49,
+      "y_min": -0.44
+    },
+    {
+      "largura": 13.28,
+      "nome": "CPT_Mountain_S_b_01",
+      "y_max": 2.16,
+      "y_min": -0.76
+    },
+    {
+      "largura": 15.08,
+      "nome": "CPT_Mountain_S_b_02",
+      "y_max": 1.65,
+      "y_min": -0.55
+    },
+    {
+      "largura": 12.95,
+      "nome": "CPT_Mountain_S_b_03",
+      "y_max": 2.43,
+      "y_min": -0.58
+    },
+    {
+      "largura": 7.86,
+      "nome": "CPT_Mountain_S_b_04",
+      "y_max": 1.73,
+      "y_min": -0.29
+    },
+    {
+      "largura": 13.35,
+      "nome": "CPT_Mountain_S_b_05",
+      "y_max": 1.14,
+      "y_min": -0.65
+    },
+    {
+      "largura": 16.96,
+      "nome": "CPT_Mountain_S_b_06",
+      "y_max": 2.08,
+      "y_min": -0.46
+    },
+    {
+      "largura": 12.24,
+      "nome": "CPT_Mountain_S_b_07",
+      "y_max": 1.85,
+      "y_min": -0.71
+    },
+    {
+      "largura": 21.99,
+      "nome": "CPT_Mountain_S_b_08",
+      "y_max": 1.17,
+      "y_min": -0.47
+    },
+    {
+      "largura": 17.77,
+      "nome": "CPT_Mountain_S_b_09",
+      "y_max": 2.36,
+      "y_min": -0.38
+    },
+    {
+      "largura": 18.18,
+      "nome": "CPT_Mountain_S_b_10",
+      "y_max": 1.76,
+      "y_min": -0.4
+    },
+    {
+      "largura": 21.86,
+      "nome": "CPT_Mountain_S_b_11",
+      "y_max": 1.25,
+      "y_min": -0.41
+    },
+    {
+      "largura": 17.64,
+      "nome": "CPT_Mountain_S_b_12",
+      "y_max": 1.6,
+      "y_min": -0.5
+    },
+    {
+      "largura": 21.05,
+      "nome": "CPT_Mountain_S_b_13",
+      "y_max": 1.59,
+      "y_min": -0.47
+    },
+    {
+      "largura": 14.79,
+      "nome": "CPT_Mountain_S_b_14",
+      "y_max": 1.23,
+      "y_min": -0.54
+    },
+    {
+      "largura": 23.68,
+      "nome": "CPT_Mountain_S_b_15",
+      "y_max": 1.65,
+      "y_min": -0.38
+    },
+    {
+      "largura": 20.7,
+      "nome": "CPT_Mountain_S_b_16",
+      "y_max": 1.86,
+      "y_min": -0.39
+    },
+    {
+      "largura": 20.03,
+      "nome": "CPT_Mountain_S_b_17",
+      "y_max": 1.48,
+      "y_min": -0.41
+    },
+    {
+      "largura": 23.05,
+      "nome": "CPT_Mountain_S_b_18",
+      "y_max": 2.46,
+      "y_min": -0.36
+    },
+    {
+      "largura": 18.8,
+      "nome": "CPT_Mountain_S_b_19",
+      "y_max": 1.55,
+      "y_min": -0.26
+    },
+    {
+      "largura": 21.26,
+      "nome": "CPT_Mountain_S_b_20",
+      "y_max": 2.01,
+      "y_min": -0.34
+    },
+    {
+      "largura": 19.0,
+      "nome": "CPT_Mountain_S_b_21",
+      "y_max": 2.83,
+      "y_min": -0.57
+    },
+    {
+      "largura": 18.14,
+      "nome": "CPT_Mountain_S_b_22",
+      "y_max": 2.47,
+      "y_min": -0.47
+    },
+    {
+      "largura": 20.14,
+      "nome": "CPT_Mountain_S_b_23",
+      "y_max": 1.85,
+      "y_min": -0.31
+    },
+    {
+      "largura": 23.97,
+      "nome": "CPT_Mountain_S_b_24",
+      "y_max": 2.45,
+      "y_min": -0.41
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_b_25",
+      "y_max": 1.13,
+      "y_min": -0.42
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_b_26",
+      "y_max": 1.39,
+      "y_min": -0.39
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_b_27",
+      "y_max": 1.45,
+      "y_min": -0.51
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_b_28",
+      "y_max": 1.64,
+      "y_min": -0.44
+    },
+    {
+      "largura": 14.06,
+      "nome": "CPT_Mountain_S_c_01",
+      "y_max": 2.03,
+      "y_min": -0.64
+    },
+    {
+      "largura": 18.53,
+      "nome": "CPT_Mountain_S_c_02",
+      "y_max": 1.65,
+      "y_min": -0.75
+    },
+    {
+      "largura": 16.95,
+      "nome": "CPT_Mountain_S_c_03",
+      "y_max": 2.41,
+      "y_min": -0.55
+    },
+    {
+      "largura": 18.66,
+      "nome": "CPT_Mountain_S_c_04",
+      "y_max": 2.36,
+      "y_min": -0.51
+    },
+    {
+      "largura": 18.84,
+      "nome": "CPT_Mountain_S_c_05",
+      "y_max": 1.76,
+      "y_min": -0.64
+    },
+    {
+      "largura": 23.97,
+      "nome": "CPT_Mountain_S_c_06",
+      "y_max": 1.25,
+      "y_min": -0.48
+    },
+    {
+      "largura": 17.77,
+      "nome": "CPT_Mountain_S_c_07",
+      "y_max": 1.6,
+      "y_min": -0.61
+    },
+    {
+      "largura": 21.35,
+      "nome": "CPT_Mountain_S_c_08",
+      "y_max": 1.59,
+      "y_min": -0.55
+    },
+    {
+      "largura": 16.66,
+      "nome": "CPT_Mountain_S_c_09",
+      "y_max": 1.18,
+      "y_min": -0.47
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_c_10",
+      "y_max": 1.65,
+      "y_min": -0.43
+    },
+    {
+      "largura": 21.43,
+      "nome": "CPT_Mountain_S_c_11",
+      "y_max": 1.71,
+      "y_min": -0.42
+    },
+    {
+      "largura": 21.08,
+      "nome": "CPT_Mountain_S_c_12",
+      "y_max": 1.45,
+      "y_min": -0.35
+    },
+    {
+      "largura": 23.53,
+      "nome": "CPT_Mountain_S_c_13",
+      "y_max": 2.46,
+      "y_min": -0.37
+    },
+    {
+      "largura": 17.81,
+      "nome": "CPT_Mountain_S_c_14",
+      "y_max": 1.55,
+      "y_min": -0.27
+    },
+    {
+      "largura": 21.21,
+      "nome": "CPT_Mountain_S_c_15",
+      "y_max": 1.93,
+      "y_min": -0.28
+    },
+    {
+      "largura": 20.28,
+      "nome": "CPT_Mountain_S_c_16",
+      "y_max": 2.83,
+      "y_min": -0.48
+    },
+    {
+      "largura": 19.29,
+      "nome": "CPT_Mountain_S_c_17",
+      "y_max": 2.47,
+      "y_min": -0.47
+    },
+    {
+      "largura": 18.26,
+      "nome": "CPT_Mountain_S_c_18",
+      "y_max": 1.28,
+      "y_min": -0.31
+    },
+    {
+      "largura": 23.05,
+      "nome": "CPT_Mountain_S_c_19",
+      "y_max": 1.85,
+      "y_min": -0.33
+    },
+    {
+      "largura": 23.13,
+      "nome": "CPT_Mountain_S_c_20",
+      "y_max": 2.45,
+      "y_min": -0.36
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_c_21",
+      "y_max": 1.13,
+      "y_min": -0.35
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_c_22",
+      "y_max": 1.39,
+      "y_min": -0.31
+    },
+    {
+      "largura": 22.66,
+      "nome": "CPT_Mountain_S_c_23",
+      "y_max": 1.17,
+      "y_min": -0.3
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_c_24",
+      "y_max": 1.45,
+      "y_min": -0.43
+    },
+    {
+      "largura": 25.0,
+      "nome": "CPT_Mountain_S_c_25",
+      "y_max": 1.64,
+      "y_min": -0.48
+    },
+    {
+      "largura": 89.06,
+      "nome": "MT_Mountain_L_a_01",
+      "y_max": 20.21,
+      "y_min": -0.82
+    },
+    {
+      "largura": 88.64,
+      "nome": "MT_Mountain_L_a_02",
+      "y_max": 12.33,
+      "y_min": -1.13
+    },
+    {
+      "largura": 84.38,
+      "nome": "MT_Mountain_L_a_03",
+      "y_max": 10.41,
+      "y_min": -1.91
+    },
+    {
+      "largura": 85.59,
+      "nome": "MT_Mountain_L_a_04",
+      "y_max": 13.08,
+      "y_min": -1.8
+    },
+    {
+      "largura": 75.73,
+      "nome": "MT_Mountain_L_a_05",
+      "y_max": 12.59,
+      "y_min": -1.12
+    },
+    {
+      "largura": 83.01,
+      "nome": "MT_Mountain_L_a_06",
+      "y_max": 16.03,
+      "y_min": -1.3
+    },
+    {
+      "largura": 75.02,
+      "nome": "MT_Mountain_L_a_07",
+      "y_max": 9.35,
+      "y_min": -0.76
+    },
+    {
+      "largura": 93.75,
+      "nome": "MT_Mountain_L_a_08",
+      "y_max": 17.26,
+      "y_min": -0.98
+    },
+    {
+      "largura": 78.53,
+      "nome": "MT_Mountain_L_a_09",
+      "y_max": 20.21,
+      "y_min": -2.45
+    },
+    {
+      "largura": 76.56,
+      "nome": "MT_Mountain_L_a_10",
+      "y_max": 21.84,
+      "y_min": -1.91
+    },
+    {
+      "largura": 86.33,
+      "nome": "MT_Mountain_L_a_11",
+      "y_max": 20.65,
+      "y_min": -1.58
+    },
+    {
+      "largura": 78.32,
+      "nome": "MT_Mountain_L_a_12",
+      "y_max": 19.98,
+      "y_min": -1.55
+    },
+    {
+      "largura": 77.35,
+      "nome": "MT_Mountain_L_a_13",
+      "y_max": 29.22,
+      "y_min": -2.27
+    },
+    {
+      "largura": 64.1,
+      "nome": "MT_Mountain_L_a_14",
+      "y_max": 18.0,
+      "y_min": -3.29
+    },
+    {
+      "largura": 96.06,
+      "nome": "MT_Mountain_L_a_15",
+      "y_max": 14.07,
+      "y_min": -1.93
+    },
+    {
+      "largura": 94.11,
+      "nome": "MT_Mountain_L_a_16",
+      "y_max": 15.48,
+      "y_min": -1.64
+    },
+    {
+      "largura": 91.02,
+      "nome": "MT_Mountain_L_a_17",
+      "y_max": 12.75,
+      "y_min": -2.16
+    },
+    {
+      "largura": 92.52,
+      "nome": "MT_Mountain_L_a_18",
+      "y_max": 15.14,
+      "y_min": -1.5
+    },
+    {
+      "largura": 86.82,
+      "nome": "MT_Mountain_L_a_19",
+      "y_max": 16.82,
+      "y_min": -1.59
+    },
+    {
+      "largura": 92.97,
+      "nome": "MT_Mountain_L_a_20",
+      "y_max": 17.17,
+      "y_min": -1.68
+    },
+    {
+      "largura": 83.78,
+      "nome": "MT_Mountain_L_a_21",
+      "y_max": 25.42,
+      "y_min": -2.03
+    },
+    {
+      "largura": 78.05,
+      "nome": "MT_Mountain_L_a_22",
+      "y_max": 17.2,
+      "y_min": -0.96
+    },
+    {
+      "largura": 90.3,
+      "nome": "MT_Mountain_L_a_23",
+      "y_max": 22.71,
+      "y_min": -1.16
+    },
+    {
+      "largura": 86.71,
+      "nome": "MT_Mountain_L_a_24",
+      "y_max": 18.81,
+      "y_min": -1.44
+    },
+    {
+      "largura": 84.68,
+      "nome": "MT_Mountain_L_a_25",
+      "y_max": 17.66,
+      "y_min": -1.04
+    },
+    {
+      "largura": 82.8,
+      "nome": "MT_Mountain_L_a_26",
+      "y_max": 15.59,
+      "y_min": -1.03
+    },
+    {
+      "largura": 89.06,
+      "nome": "MT_Mountain_L_a_27",
+      "y_max": 37.06,
+      "y_min": -1.41
+    },
+    {
+      "largura": 86.58,
+      "nome": "MT_Mountain_L_a_28",
+      "y_max": 25.49,
+      "y_min": -1.54
+    },
+    {
+      "largura": 90.23,
+      "nome": "MT_Mountain_L_a_29",
+      "y_max": 25.6,
+      "y_min": -1.49
+    },
+    {
+      "largura": 85.54,
+      "nome": "MT_Mountain_L_a_30",
+      "y_max": 23.2,
+      "y_min": -0.85
+    },
+    {
+      "largura": 88.4,
+      "nome": "MT_Mountain_L_a_31",
+      "y_max": 27.03,
+      "y_min": -1.54
+    },
+    {
+      "largura": 75.72,
+      "nome": "MT_Mountain_L_a_32",
+      "y_max": 18.15,
+      "y_min": -0.9
+    },
+    {
+      "largura": 77.27,
+      "nome": "MT_Mountain_L_a_33",
+      "y_max": 18.33,
+      "y_min": -0.97
+    },
+    {
+      "largura": 89.06,
+      "nome": "MT_Mountain_L_a_34",
+      "y_max": 43.67,
+      "y_min": -1.33
+    },
+    {
+      "largura": 80.37,
+      "nome": "MT_Mountain_L_a_35",
+      "y_max": 15.19,
+      "y_min": -1.03
+    },
+    {
+      "largura": 86.71,
+      "nome": "MT_Mountain_L_a_36",
+      "y_max": 20.57,
+      "y_min": -1.21
+    },
+    {
+      "largura": 86.66,
+      "nome": "MT_Mountain_L_a_37",
+      "y_max": 21.01,
+      "y_min": -1.01
+    },
+    {
+      "largura": 100.0,
+      "nome": "MT_Mountain_L_a_38",
+      "y_max": 39.08,
+      "y_min": -1.52
+    },
+    {
+      "largura": 99.99,
+      "nome": "MT_Mountain_L_a_39",
+      "y_max": 25.22,
+      "y_min": -1.8
+    },
+    {
+      "largura": 98.24,
+      "nome": "MT_Mountain_L_a_40",
+      "y_max": 33.98,
+      "y_min": -2.58
+    },
+    {
+      "largura": 104.96,
+      "nome": "MT_Mountain_L_a_41",
+      "y_max": 26.27,
+      "y_min": -2.79
+    },
+    {
+      "largura": 98.14,
+      "nome": "MT_Mountain_L_a_42",
+      "y_max": 38.18,
+      "y_min": -1.73
+    },
+    {
+      "largura": 95.37,
+      "nome": "MT_Mountain_L_a_43",
+      "y_max": 54.28,
+      "y_min": -2.36
+    },
+    {
+      "largura": 97.08,
+      "nome": "MT_Mountain_L_a_44",
+      "y_max": 46.03,
+      "y_min": -2.38
+    },
+    {
+      "largura": 94.39,
+      "nome": "MT_Mountain_L_a_45",
+      "y_max": 21.72,
+      "y_min": -1.91
+    },
+    {
+      "largura": 79.69,
+      "nome": "MT_Mountain_L_b_01",
+      "y_max": 11.56,
+      "y_min": -1.06
+    },
+    {
+      "largura": 92.17,
+      "nome": "MT_Mountain_L_b_02",
+      "y_max": 8.96,
+      "y_min": -1.49
+    },
+    {
+      "largura": 90.63,
+      "nome": "MT_Mountain_L_b_03",
+      "y_max": 12.29,
+      "y_min": -2.03
+    },
+    {
+      "largura": 74.89,
+      "nome": "MT_Mountain_L_b_04",
+      "y_max": 4.41,
+      "y_min": -1.49
+    },
+    {
+      "largura": 76.16,
+      "nome": "MT_Mountain_L_b_05",
+      "y_max": 5.54,
+      "y_min": -1.24
+    },
+    {
+      "largura": 58.98,
+      "nome": "MT_Mountain_L_b_06",
+      "y_max": 4.27,
+      "y_min": -1.76
+    },
+    {
+      "largura": 50.0,
+      "nome": "MT_Mountain_L_b_07",
+      "y_max": 3.04,
+      "y_min": -2.1
+    },
+    {
+      "largura": 80.08,
+      "nome": "MT_Mountain_L_b_08",
+      "y_max": 4.27,
+      "y_min": -2.1
+    },
+    {
+      "largura": 89.22,
+      "nome": "MT_Mountain_L_b_09",
+      "y_max": 7.21,
+      "y_min": -2.0
+    },
+    {
+      "largura": 82.39,
+      "nome": "MT_Mountain_L_b_10",
+      "y_max": 7.82,
+      "y_min": -1.07
+    },
+    {
+      "largura": 87.11,
+      "nome": "MT_Mountain_L_b_11",
+      "y_max": 8.14,
+      "y_min": -1.69
+    },
+    {
+      "largura": 75.43,
+      "nome": "MT_Mountain_L_b_12",
+      "y_max": 5.87,
+      "y_min": -0.58
+    },
+    {
+      "largura": 60.22,
+      "nome": "MT_Mountain_L_b_13",
+      "y_max": 5.87,
+      "y_min": -0.54
+    },
+    {
+      "largura": 39.66,
+      "nome": "MT_Mountain_L_b_14",
+      "y_max": 4.39,
+      "y_min": -1.14
+    },
+    {
+      "largura": 35.15,
+      "nome": "MT_Mountain_L_b_15",
+      "y_max": 6.23,
+      "y_min": -0.89
+    },
+    {
+      "largura": 40.62,
+      "nome": "MT_Mountain_L_b_16",
+      "y_max": 5.57,
+      "y_min": -1.19
+    },
+    {
+      "largura": 41.45,
+      "nome": "MT_Mountain_L_b_17",
+      "y_max": 5.63,
+      "y_min": -2.1
+    },
+    {
+      "largura": 50.68,
+      "nome": "MT_Mountain_L_b_18",
+      "y_max": 4.96,
+      "y_min": -1.03
+    },
+    {
+      "largura": 48.63,
+      "nome": "MT_Mountain_L_b_19",
+      "y_max": 7.44,
+      "y_min": -2.54
+    },
+    {
+      "largura": 89.84,
+      "nome": "MT_Mountain_L_b_20",
+      "y_max": 16.01,
+      "y_min": -1.1
+    },
+    {
+      "largura": 88.64,
+      "nome": "MT_Mountain_L_b_21",
+      "y_max": 21.04,
+      "y_min": -1.46
+    },
+    {
+      "largura": 70.31,
+      "nome": "MT_Mountain_L_b_22",
+      "y_max": 16.61,
+      "y_min": -1.42
+    },
+    {
+      "largura": 84.03,
+      "nome": "MT_Mountain_L_b_23",
+      "y_max": 24.14,
+      "y_min": -1.87
+    },
+    {
+      "largura": 96.2,
+      "nome": "MT_Mountain_L_b_24",
+      "y_max": 23.0,
+      "y_min": -2.0
+    },
+    {
+      "largura": 86.48,
+      "nome": "MT_Mountain_L_b_25",
+      "y_max": 23.2,
+      "y_min": -0.95
+    },
+    {
+      "largura": 92.8,
+      "nome": "MT_Mountain_L_b_26",
+      "y_max": 35.97,
+      "y_min": -2.67
+    },
+    {
+      "largura": 86.94,
+      "nome": "MT_Mountain_L_b_27",
+      "y_max": 28.79,
+      "y_min": -1.63
+    },
+    {
+      "largura": 76.16,
+      "nome": "MT_Mountain_L_c_01",
+      "y_max": 12.65,
+      "y_min": -2.88
+    },
+    {
+      "largura": 92.06,
+      "nome": "MT_Mountain_L_c_02",
+      "y_max": 8.35,
+      "y_min": -1.15
+    },
+    {
+      "largura": 94.99,
+      "nome": "MT_Mountain_L_c_03",
+      "y_max": 13.04,
+      "y_min": -1.42
+    },
+    {
+      "largura": 73.96,
+      "nome": "MT_Mountain_L_c_04",
+      "y_max": 3.98,
+      "y_min": -1.72
+    },
+    {
+      "largura": 80.87,
+      "nome": "MT_Mountain_L_c_05",
+      "y_max": 8.02,
+      "y_min": -1.11
+    },
+    {
+      "largura": 80.08,
+      "nome": "MT_Mountain_L_c_06",
+      "y_max": 4.83,
+      "y_min": -0.62
+    },
+    {
+      "largura": 89.62,
+      "nome": "MT_Mountain_L_c_07",
+      "y_max": 6.64,
+      "y_min": -1.5
+    },
+    {
+      "largura": 94.95,
+      "nome": "MT_Mountain_L_c_08",
+      "y_max": 7.51,
+      "y_min": -0.68
+    },
+    {
+      "largura": 88.29,
+      "nome": "MT_Mountain_L_c_09",
+      "y_max": 8.68,
+      "y_min": -1.31
+    },
+    {
+      "largura": 77.72,
+      "nome": "MT_Mountain_L_c_10",
+      "y_max": 6.29,
+      "y_min": -1.27
+    },
+    {
+      "largura": 36.77,
+      "nome": "MT_Mountain_L_c_11",
+      "y_max": 4.49,
+      "y_min": -1.26
+    },
+    {
+      "largura": 39.06,
+      "nome": "MT_Mountain_L_c_12",
+      "y_max": 4.64,
+      "y_min": -0.71
+    },
+    {
+      "largura": 44.55,
+      "nome": "MT_Mountain_L_c_13",
+      "y_max": 4.27,
+      "y_min": -0.66
+    },
+    {
+      "largura": 44.61,
+      "nome": "MT_Mountain_L_c_14",
+      "y_max": 5.14,
+      "y_min": -1.02
+    },
+    {
+      "largura": 33.63,
+      "nome": "MT_Mountain_L_c_15",
+      "y_max": 7.67,
+      "y_min": -1.36
+    },
+    {
+      "largura": 50.15,
+      "nome": "MT_Mountain_L_c_16",
+      "y_max": 6.88,
+      "y_min": -1.0
+    },
+    {
+      "largura": 84.91,
+      "nome": "MT_Mountain_L_d_01",
+      "y_max": 14.86,
+      "y_min": -4.67
+    },
+    {
+      "largura": 95.06,
+      "nome": "MT_Mountain_L_d_02",
+      "y_max": 27.2,
+      "y_min": -2.86
+    },
+    {
+      "largura": 95.17,
+      "nome": "MT_Mountain_L_d_03",
+      "y_max": 21.89,
+      "y_min": -2.14
+    },
+    {
+      "largura": 99.59,
+      "nome": "MT_Mountain_L_d_04",
+      "y_max": 33.3,
+      "y_min": -1.63
+    },
+    {
+      "largura": 96.54,
+      "nome": "MT_Mountain_L_d_05",
+      "y_max": 32.51,
+      "y_min": -1.79
+    },
+    {
+      "largura": 98.0,
+      "nome": "MT_Mountain_L_d_06",
+      "y_max": 35.42,
+      "y_min": -2.01
+    },
+    {
+      "largura": 97.99,
+      "nome": "MT_Mountain_L_d_07",
+      "y_max": 30.53,
+      "y_min": -1.48
+    },
+    {
+      "largura": 96.87,
+      "nome": "MT_Mountain_L_e_01",
+      "y_max": 34.81,
+      "y_min": -1.41
+    },
+    {
+      "largura": 96.17,
+      "nome": "MT_Mountain_L_e_02",
+      "y_max": 22.71,
+      "y_min": -1.33
+    },
+    {
+      "largura": 97.0,
+      "nome": "MT_Mountain_L_e_03",
+      "y_max": 15.8,
+      "y_min": -1.31
+    },
+    {
+      "largura": 95.71,
+      "nome": "MT_Mountain_L_e_04",
+      "y_max": 32.01,
+      "y_min": -1.26
+    },
+    {
+      "largura": 42.58,
+      "nome": "MT_Mountain_M_a_01",
+      "y_max": 1.39,
+      "y_min": -0.4
+    },
+    {
+      "largura": 46.06,
+      "nome": "MT_Mountain_M_a_02",
+      "y_max": 2.76,
+      "y_min": -0.4
+    },
+    {
+      "largura": 42.2,
+      "nome": "MT_Mountain_M_a_03",
+      "y_max": 3.29,
+      "y_min": -0.39
+    },
+    {
+      "largura": 46.48,
+      "nome": "MT_Mountain_M_a_04",
+      "y_max": 3.64,
+      "y_min": -0.45
+    },
+    {
+      "largura": 45.31,
+      "nome": "MT_Mountain_M_a_05",
+      "y_max": 4.44,
+      "y_min": -0.29
+    },
+    {
+      "largura": 34.38,
+      "nome": "MT_Mountain_M_a_06",
+      "y_max": 3.76,
+      "y_min": -0.28
+    },
+    {
+      "largura": 45.31,
+      "nome": "MT_Mountain_M_a_07",
+      "y_max": 4.27,
+      "y_min": -0.41
+    },
+    {
+      "largura": 48.44,
+      "nome": "MT_Mountain_M_a_08",
+      "y_max": 6.23,
+      "y_min": -0.43
+    },
+    {
+      "largura": 42.97,
+      "nome": "MT_Mountain_M_a_09",
+      "y_max": 5.88,
+      "y_min": -0.43
+    },
+    {
+      "largura": 43.75,
+      "nome": "MT_Mountain_M_a_10",
+      "y_max": 6.8,
+      "y_min": -0.56
+    },
+    {
+      "largura": 41.8,
+      "nome": "MT_Mountain_M_a_11",
+      "y_max": 3.31,
+      "y_min": -0.51
+    },
+    {
+      "largura": 39.84,
+      "nome": "MT_Mountain_M_a_12",
+      "y_max": 5.42,
+      "y_min": -0.54
+    },
+    {
+      "largura": 41.69,
+      "nome": "MT_Mountain_M_a_13",
+      "y_max": 5.93,
+      "y_min": -0.52
+    },
+    {
+      "largura": 39.45,
+      "nome": "MT_Mountain_M_a_14",
+      "y_max": 3.47,
+      "y_min": -0.43
+    },
+    {
+      "largura": 46.87,
+      "nome": "MT_Mountain_M_a_15",
+      "y_max": 3.83,
+      "y_min": -0.89
+    },
+    {
+      "largura": 43.75,
+      "nome": "MT_Mountain_M_a_16",
+      "y_max": 6.84,
+      "y_min": -0.6
+    },
+    {
+      "largura": 48.05,
+      "nome": "MT_Mountain_M_a_17",
+      "y_max": 10.14,
+      "y_min": -0.8
+    },
+    {
+      "largura": 46.88,
+      "nome": "MT_Mountain_M_a_18",
+      "y_max": 9.09,
+      "y_min": -0.57
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_a_19",
+      "y_max": 15.79,
+      "y_min": -0.63
+    },
+    {
+      "largura": 46.88,
+      "nome": "MT_Mountain_M_a_20",
+      "y_max": 8.62,
+      "y_min": -0.49
+    },
+    {
+      "largura": 39.85,
+      "nome": "MT_Mountain_M_a_21",
+      "y_max": 8.26,
+      "y_min": -0.52
+    },
+    {
+      "largura": 47.91,
+      "nome": "MT_Mountain_M_a_22",
+      "y_max": 6.06,
+      "y_min": -0.49
+    },
+    {
+      "largura": 47.52,
+      "nome": "MT_Mountain_M_a_23",
+      "y_max": 9.45,
+      "y_min": -1.16
+    },
+    {
+      "largura": 34.36,
+      "nome": "MT_Mountain_M_b_01",
+      "y_max": 2.43,
+      "y_min": -0.37
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_b_02",
+      "y_max": 3.67,
+      "y_min": -0.28
+    },
+    {
+      "largura": 39.45,
+      "nome": "MT_Mountain_M_b_03",
+      "y_max": 2.98,
+      "y_min": -0.3
+    },
+    {
+      "largura": 39.84,
+      "nome": "MT_Mountain_M_b_04",
+      "y_max": 2.63,
+      "y_min": -0.47
+    },
+    {
+      "largura": 41.41,
+      "nome": "MT_Mountain_M_b_05",
+      "y_max": 4.7,
+      "y_min": -0.41
+    },
+    {
+      "largura": 41.8,
+      "nome": "MT_Mountain_M_b_06",
+      "y_max": 4.74,
+      "y_min": -0.24
+    },
+    {
+      "largura": 46.09,
+      "nome": "MT_Mountain_M_b_07",
+      "y_max": 3.44,
+      "y_min": -0.45
+    },
+    {
+      "largura": 46.88,
+      "nome": "MT_Mountain_M_b_08",
+      "y_max": 3.97,
+      "y_min": -0.37
+    },
+    {
+      "largura": 46.09,
+      "nome": "MT_Mountain_M_b_09",
+      "y_max": 4.44,
+      "y_min": -0.43
+    },
+    {
+      "largura": 41.41,
+      "nome": "MT_Mountain_M_b_10",
+      "y_max": 6.28,
+      "y_min": -0.54
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_b_11",
+      "y_max": 3.12,
+      "y_min": -0.32
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_b_12",
+      "y_max": 5.23,
+      "y_min": -0.27
+    },
+    {
+      "largura": 48.44,
+      "nome": "MT_Mountain_M_b_13",
+      "y_max": 4.07,
+      "y_min": -0.43
+    },
+    {
+      "largura": 32.03,
+      "nome": "MT_Mountain_M_b_14",
+      "y_max": 3.86,
+      "y_min": -0.45
+    },
+    {
+      "largura": 42.19,
+      "nome": "MT_Mountain_M_b_15",
+      "y_max": 3.94,
+      "y_min": -0.55
+    },
+    {
+      "largura": 39.06,
+      "nome": "MT_Mountain_M_b_16",
+      "y_max": 4.1,
+      "y_min": -0.31
+    },
+    {
+      "largura": 39.06,
+      "nome": "MT_Mountain_M_b_17",
+      "y_max": 6.7,
+      "y_min": -0.61
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_b_18",
+      "y_max": 4.25,
+      "y_min": -0.45
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_b_19",
+      "y_max": 5.56,
+      "y_min": -0.37
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_b_20",
+      "y_max": 3.89,
+      "y_min": -0.38
+    },
+    {
+      "largura": 46.63,
+      "nome": "MT_Mountain_M_b_21",
+      "y_max": 7.62,
+      "y_min": -0.82
+    },
+    {
+      "largura": 30.73,
+      "nome": "MT_Mountain_M_b_22",
+      "y_max": 4.35,
+      "y_min": -0.65
+    },
+    {
+      "largura": 33.59,
+      "nome": "MT_Mountain_M_c_01",
+      "y_max": 2.61,
+      "y_min": -0.45
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_c_02",
+      "y_max": 3.54,
+      "y_min": -0.37
+    },
+    {
+      "largura": 42.19,
+      "nome": "MT_Mountain_M_c_03",
+      "y_max": 2.98,
+      "y_min": -0.38
+    },
+    {
+      "largura": 41.8,
+      "nome": "MT_Mountain_M_c_04",
+      "y_max": 2.68,
+      "y_min": -0.52
+    },
+    {
+      "largura": 41.41,
+      "nome": "MT_Mountain_M_c_05",
+      "y_max": 4.7,
+      "y_min": -0.51
+    },
+    {
+      "largura": 44.14,
+      "nome": "MT_Mountain_M_c_06",
+      "y_max": 4.54,
+      "y_min": -0.62
+    },
+    {
+      "largura": 48.44,
+      "nome": "MT_Mountain_M_c_07",
+      "y_max": 3.33,
+      "y_min": -0.57
+    },
+    {
+      "largura": 46.88,
+      "nome": "MT_Mountain_M_c_08",
+      "y_max": 3.67,
+      "y_min": -0.5
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_c_09",
+      "y_max": 4.21,
+      "y_min": -0.52
+    },
+    {
+      "largura": 46.88,
+      "nome": "MT_Mountain_M_c_10",
+      "y_max": 6.28,
+      "y_min": -0.45
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_c_11",
+      "y_max": 3.24,
+      "y_min": -0.59
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_c_12",
+      "y_max": 4.87,
+      "y_min": -0.39
+    },
+    {
+      "largura": 48.05,
+      "nome": "MT_Mountain_M_c_13",
+      "y_max": 4.05,
+      "y_min": -0.35
+    },
+    {
+      "largura": 32.81,
+      "nome": "MT_Mountain_M_c_14",
+      "y_max": 3.71,
+      "y_min": -0.83
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_c_15",
+      "y_max": 3.8,
+      "y_min": -0.64
+    },
+    {
+      "largura": 42.97,
+      "nome": "MT_Mountain_M_c_16",
+      "y_max": 4.29,
+      "y_min": -0.37
+    },
+    {
+      "largura": 39.06,
+      "nome": "MT_Mountain_M_c_17",
+      "y_max": 6.14,
+      "y_min": -0.32
+    },
+    {
+      "largura": 46.09,
+      "nome": "MT_Mountain_M_c_18",
+      "y_max": 4.25,
+      "y_min": -0.28
+    },
+    {
+      "largura": 44.53,
+      "nome": "MT_Mountain_M_c_19",
+      "y_max": 5.25,
+      "y_min": -0.35
+    },
+    {
+      "largura": 45.71,
+      "nome": "MT_Mountain_M_c_20",
+      "y_max": 4.1,
+      "y_min": -0.45
+    },
+    {
+      "largura": 46.88,
+      "nome": "MT_Mountain_M_c_21",
+      "y_max": 7.62,
+      "y_min": -0.39
+    },
+    {
+      "largura": 33.11,
+      "nome": "MT_Mountain_M_c_22",
+      "y_max": 4.09,
+      "y_min": -0.44
+    },
+    {
+      "largura": 17.58,
+      "nome": "MT_Mountain_S_a_01",
+      "y_max": 1.36,
+      "y_min": -0.53
+    },
+    {
+      "largura": 16.8,
+      "nome": "MT_Mountain_S_a_02",
+      "y_max": 1.28,
+      "y_min": -0.34
+    },
+    {
+      "largura": 21.09,
+      "nome": "MT_Mountain_S_a_03",
+      "y_max": 1.92,
+      "y_min": -0.45
+    },
+    {
+      "largura": 23.05,
+      "nome": "MT_Mountain_S_a_04",
+      "y_max": 1.39,
+      "y_min": -0.37
+    },
+    {
+      "largura": 17.78,
+      "nome": "MT_Mountain_S_a_05",
+      "y_max": 1.16,
+      "y_min": -0.16
+    },
+    {
+      "largura": 20.7,
+      "nome": "MT_Mountain_S_a_06",
+      "y_max": 1.1,
+      "y_min": -0.41
+    },
+    {
+      "largura": 18.75,
+      "nome": "MT_Mountain_S_a_07",
+      "y_max": 2.32,
+      "y_min": -0.42
+    },
+    {
+      "largura": 18.77,
+      "nome": "MT_Mountain_S_a_08",
+      "y_max": 3.56,
+      "y_min": -0.33
+    },
+    {
+      "largura": 23.18,
+      "nome": "MT_Mountain_S_a_09",
+      "y_max": 3.92,
+      "y_min": -0.36
+    },
+    {
+      "largura": 20.7,
+      "nome": "MT_Mountain_S_a_10",
+      "y_max": 2.73,
+      "y_min": -0.44
+    },
+    {
+      "largura": 21.11,
+      "nome": "MT_Mountain_S_a_11",
+      "y_max": 1.25,
+      "y_min": -0.46
+    },
+    {
+      "largura": 17.58,
+      "nome": "MT_Mountain_S_a_12",
+      "y_max": 3.78,
+      "y_min": -0.35
+    },
+    {
+      "largura": 18.8,
+      "nome": "MT_Mountain_S_a_13",
+      "y_max": 5.13,
+      "y_min": -0.22
+    },
+    {
+      "largura": 23.05,
+      "nome": "MT_Mountain_S_a_14",
+      "y_max": 1.6,
+      "y_min": -0.25
+    },
+    {
+      "largura": 23.05,
+      "nome": "MT_Mountain_S_a_15",
+      "y_max": 1.94,
+      "y_min": -0.35
+    },
+    {
+      "largura": 20.7,
+      "nome": "MT_Mountain_S_a_16",
+      "y_max": 5.77,
+      "y_min": -0.17
+    },
+    {
+      "largura": 23.05,
+      "nome": "MT_Mountain_S_a_17",
+      "y_max": 5.05,
+      "y_min": -0.16
+    },
+    {
+      "largura": 16.8,
+      "nome": "MT_Mountain_S_a_18",
+      "y_max": 3.47,
+      "y_min": -0.3
+    },
+    {
+      "largura": 18.75,
+      "nome": "MT_Mountain_S_a_19",
+      "y_max": 3.41,
+      "y_min": -0.19
+    },
+    {
+      "largura": 20.7,
+      "nome": "MT_Mountain_S_a_20",
+      "y_max": 3.64,
+      "y_min": -0.22
+    },
+    {
+      "largura": 20.12,
+      "nome": "MT_Mountain_S_a_21",
+      "y_max": 3.49,
+      "y_min": -0.44
+    },
+    {
+      "largura": 13.28,
+      "nome": "MT_Mountain_S_b_01",
+      "y_max": 2.16,
+      "y_min": -0.76
+    },
+    {
+      "largura": 15.08,
+      "nome": "MT_Mountain_S_b_02",
+      "y_max": 1.65,
+      "y_min": -0.55
+    },
+    {
+      "largura": 12.95,
+      "nome": "MT_Mountain_S_b_03",
+      "y_max": 2.43,
+      "y_min": -0.58
+    },
+    {
+      "largura": 7.86,
+      "nome": "MT_Mountain_S_b_04",
+      "y_max": 1.73,
+      "y_min": -0.29
+    },
+    {
+      "largura": 13.35,
+      "nome": "MT_Mountain_S_b_05",
+      "y_max": 1.14,
+      "y_min": -0.65
+    },
+    {
+      "largura": 16.96,
+      "nome": "MT_Mountain_S_b_06",
+      "y_max": 2.08,
+      "y_min": -0.46
+    },
+    {
+      "largura": 12.24,
+      "nome": "MT_Mountain_S_b_07",
+      "y_max": 1.85,
+      "y_min": -0.71
+    },
+    {
+      "largura": 21.99,
+      "nome": "MT_Mountain_S_b_08",
+      "y_max": 1.17,
+      "y_min": -0.47
+    },
+    {
+      "largura": 17.77,
+      "nome": "MT_Mountain_S_b_09",
+      "y_max": 2.36,
+      "y_min": -0.38
+    },
+    {
+      "largura": 18.18,
+      "nome": "MT_Mountain_S_b_10",
+      "y_max": 1.76,
+      "y_min": -0.4
+    },
+    {
+      "largura": 21.86,
+      "nome": "MT_Mountain_S_b_11",
+      "y_max": 1.25,
+      "y_min": -0.41
+    },
+    {
+      "largura": 17.64,
+      "nome": "MT_Mountain_S_b_12",
+      "y_max": 1.6,
+      "y_min": -0.5
+    },
+    {
+      "largura": 21.05,
+      "nome": "MT_Mountain_S_b_13",
+      "y_max": 1.59,
+      "y_min": -0.47
+    },
+    {
+      "largura": 14.79,
+      "nome": "MT_Mountain_S_b_14",
+      "y_max": 1.23,
+      "y_min": -0.54
+    },
+    {
+      "largura": 23.68,
+      "nome": "MT_Mountain_S_b_15",
+      "y_max": 1.65,
+      "y_min": -0.38
+    },
+    {
+      "largura": 20.7,
+      "nome": "MT_Mountain_S_b_16",
+      "y_max": 1.86,
+      "y_min": -0.39
+    },
+    {
+      "largura": 20.03,
+      "nome": "MT_Mountain_S_b_17",
+      "y_max": 1.48,
+      "y_min": -0.41
+    },
+    {
+      "largura": 23.05,
+      "nome": "MT_Mountain_S_b_18",
+      "y_max": 2.46,
+      "y_min": -0.36
+    },
+    {
+      "largura": 18.8,
+      "nome": "MT_Mountain_S_b_19",
+      "y_max": 1.55,
+      "y_min": -0.26
+    },
+    {
+      "largura": 21.26,
+      "nome": "MT_Mountain_S_b_20",
+      "y_max": 2.01,
+      "y_min": -0.34
+    },
+    {
+      "largura": 19.0,
+      "nome": "MT_Mountain_S_b_21",
+      "y_max": 2.83,
+      "y_min": -0.57
+    },
+    {
+      "largura": 18.14,
+      "nome": "MT_Mountain_S_b_22",
+      "y_max": 2.47,
+      "y_min": -0.47
+    },
+    {
+      "largura": 20.14,
+      "nome": "MT_Mountain_S_b_23",
+      "y_max": 1.85,
+      "y_min": -0.31
+    },
+    {
+      "largura": 23.97,
+      "nome": "MT_Mountain_S_b_24",
+      "y_max": 2.45,
+      "y_min": -0.41
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_b_25",
+      "y_max": 1.13,
+      "y_min": -0.42
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_b_26",
+      "y_max": 1.39,
+      "y_min": -0.39
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_b_27",
+      "y_max": 1.45,
+      "y_min": -0.51
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_b_28",
+      "y_max": 1.64,
+      "y_min": -0.44
+    },
+    {
+      "largura": 14.06,
+      "nome": "MT_Mountain_S_c_01",
+      "y_max": 2.03,
+      "y_min": -0.64
+    },
+    {
+      "largura": 18.53,
+      "nome": "MT_Mountain_S_c_02",
+      "y_max": 1.65,
+      "y_min": -0.75
+    },
+    {
+      "largura": 16.95,
+      "nome": "MT_Mountain_S_c_03",
+      "y_max": 2.41,
+      "y_min": -0.55
+    },
+    {
+      "largura": 18.66,
+      "nome": "MT_Mountain_S_c_04",
+      "y_max": 2.36,
+      "y_min": -0.51
+    },
+    {
+      "largura": 18.84,
+      "nome": "MT_Mountain_S_c_05",
+      "y_max": 1.76,
+      "y_min": -0.64
+    },
+    {
+      "largura": 23.97,
+      "nome": "MT_Mountain_S_c_06",
+      "y_max": 1.25,
+      "y_min": -0.48
+    },
+    {
+      "largura": 17.77,
+      "nome": "MT_Mountain_S_c_07",
+      "y_max": 1.6,
+      "y_min": -0.61
+    },
+    {
+      "largura": 21.35,
+      "nome": "MT_Mountain_S_c_08",
+      "y_max": 1.59,
+      "y_min": -0.55
+    },
+    {
+      "largura": 16.66,
+      "nome": "MT_Mountain_S_c_09",
+      "y_max": 1.18,
+      "y_min": -0.47
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_c_10",
+      "y_max": 1.65,
+      "y_min": -0.43
+    },
+    {
+      "largura": 21.43,
+      "nome": "MT_Mountain_S_c_11",
+      "y_max": 1.71,
+      "y_min": -0.42
+    },
+    {
+      "largura": 21.08,
+      "nome": "MT_Mountain_S_c_12",
+      "y_max": 1.45,
+      "y_min": -0.35
+    },
+    {
+      "largura": 23.53,
+      "nome": "MT_Mountain_S_c_13",
+      "y_max": 2.46,
+      "y_min": -0.37
+    },
+    {
+      "largura": 17.81,
+      "nome": "MT_Mountain_S_c_14",
+      "y_max": 1.55,
+      "y_min": -0.27
+    },
+    {
+      "largura": 21.21,
+      "nome": "MT_Mountain_S_c_15",
+      "y_max": 1.93,
+      "y_min": -0.28
+    },
+    {
+      "largura": 20.28,
+      "nome": "MT_Mountain_S_c_16",
+      "y_max": 2.83,
+      "y_min": -0.48
+    },
+    {
+      "largura": 19.29,
+      "nome": "MT_Mountain_S_c_17",
+      "y_max": 2.47,
+      "y_min": -0.47
+    },
+    {
+      "largura": 18.26,
+      "nome": "MT_Mountain_S_c_18",
+      "y_max": 1.28,
+      "y_min": -0.31
+    },
+    {
+      "largura": 23.05,
+      "nome": "MT_Mountain_S_c_19",
+      "y_max": 1.85,
+      "y_min": -0.33
+    },
+    {
+      "largura": 23.13,
+      "nome": "MT_Mountain_S_c_20",
+      "y_max": 2.45,
+      "y_min": -0.36
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_c_21",
+      "y_max": 1.13,
+      "y_min": -0.35
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_c_22",
+      "y_max": 1.39,
+      "y_min": -0.31
+    },
+    {
+      "largura": 22.66,
+      "nome": "MT_Mountain_S_c_23",
+      "y_max": 1.17,
+      "y_min": -0.3
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_c_24",
+      "y_max": 1.45,
+      "y_min": -0.43
+    },
+    {
+      "largura": 25.0,
+      "nome": "MT_Mountain_S_c_25",
+      "y_max": 1.64,
+      "y_min": -0.48
+    }
+  ]
+}
