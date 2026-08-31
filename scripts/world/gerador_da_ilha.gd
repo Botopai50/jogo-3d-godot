@@ -1211,19 +1211,33 @@ func _melhor_peca(pecas: Array, entrada: int, saida: int, fracao_anterior: float
 					break
 			if not combina:
 				continue
+			var fracao_de_entrada := float((mundo[entrada] as Dictionary)["fracao"]) if entrada >= 0 else 0.0
+			var fracao_de_saida := float((mundo[saida] as Dictionary)["fracao"]) if saida >= 0 else 0.0
 			var erro := 0.0
 			if tem_anterior and entrada >= 0:
-				erro = absf(float((mundo[entrada] as Dictionary)["fracao"]) - fracao_anterior)
+				erro = absf(fracao_de_entrada - fracao_anterior)
+			# Entre as pecas que servem, algumas atravessam a celula na diagonal
+			# (CPT_River_L_c_01 entra a +0.37 e sai a -0.34). Num trecho reto
+			# elas fazem o leito serpentear meia celula, e a lamina, que segue
+			# uma linha, nao acompanha. Penalizar a travessia deixa o leito
+			# previsivel.
+			if entrada >= 0 and saida >= 0 and _mesma_direcao(entrada, saida):
+				erro += absf(fracao_de_entrada - fracao_de_saida) * 0.8
 			if erro < melhor_erro:
 				melhor_erro = erro
 				melhor = {
 					"nome": peca["nome"],
 					"voltas": voltas,
-					"fracao_entrada": float((mundo[entrada] as Dictionary)["fracao"]) if entrada >= 0 else 0.0,
-					"fracao_saida": float((mundo[saida] as Dictionary)["fracao"]) if saida >= 0 else 0.0,
-					"desalinho": melhor_erro,
+					"fracao_entrada": fracao_de_entrada,
+					"fracao_saida": fracao_de_saida,
+					"desalinho": absf(fracao_de_entrada - fracao_anterior) if tem_anterior and entrada >= 0 else 0.0,
 				}
 	return melhor
+
+
+## Duas bordas opostas, ou seja, trecho reto.
+func _mesma_direcao(a: int, b: int) -> bool:
+	return (a + 2) % 4 == b
 
 
 func _montar_agua(raiz: Node3D) -> void:
@@ -1326,12 +1340,18 @@ func _montar_lamina_do_rio(raiz: Node3D) -> void:
 	if trechos.size() < 2:
 		return
 	var pontos: Array = []
-	# A fita comeca no vertedouro, que e a peca de lago com canal: assim a agua
-	# do rio encosta na do lago sem sobrar trecho seco, e continua dentro de um
-	# modulo do pacote.
-	pontos.append(Vector3(
-		float(_celula_de_saida.x) * tamanho_do_modulo, 0.0,
-		float(_celula_de_saida.y) * tamanho_do_modulo))
+	# A fita entra um pouco no vertedouro, seguindo a direcao do canal. Mirar no
+	# centro daquela celula faria a agua cortar a bacia na diagonal.
+	var primeiro: Dictionary = trechos[0]
+	var celula_inicial: Vector2i = primeiro["celula"]
+	var centro_inicial := Vector3(
+		celula_inicial.x * tamanho_do_modulo, 0.0, celula_inicial.y * tamanho_do_modulo)
+	var entrada_inicial := centro_inicial + _ponto_no_mundo(
+		int(primeiro["escolha"]["borda_entrada"]), float(primeiro["escolha"]["fracao_entrada"]))
+	var para_o_lago := entrada_inicial - centro_inicial
+	para_o_lago.y = 0.0
+	if para_o_lago.length_squared() > 0.001:
+		pontos.append(entrada_inicial + para_o_lago.normalized() * tamanho_do_modulo * 0.55)
 	for indice in range(trechos.size()):
 		var item: Dictionary = trechos[indice]
 		var celula: Vector2i = item["celula"]
@@ -1348,7 +1368,11 @@ func _montar_lamina_do_rio(raiz: Node3D) -> void:
 				pontos.append(centro + cotovelo)
 			pontos.append(centro + _ponto_no_mundo(borda_saida, float(escolha["fracao_saida"])))
 		else:
-			pontos.append(centro + (entrada - centro) * 0.3)
+			# Nascente: o canal morre dentro da peca. A fita para perto do
+			# centro; voltar para tras faria a agua dobrar sobre si mesma.
+			pontos.append(centro + (entrada - centro) * 0.5)
+			pontos.append(centro + (entrada - centro) * 0.12)
+			pontos.append(centro - (entrada - centro) * 0.25)
 	_construir_fita(raiz, pontos)
 
 
@@ -1386,42 +1410,71 @@ func _encaixar_no_leito(pontos: Array) -> Array:
 			densos.append(a.lerp(b, float(k) / float(partes)))
 	densos.append(pontos[pontos.size() - 1])
 
-	var busca := tamanho_do_modulo * 0.22
+	# Encaixa, suaviza e encaixa de novo. A suavizacao sozinha corta as curvas e
+	# tira a linha do fundo; o segundo encaixe devolve ela ao leito ja sem o
+	# ziguezague que o primeiro deixa.
+	var ajustados := _encaixar_uma_vez(densos)
+	ajustados = _suavizar(ajustados)
+	ajustados = _encaixar_uma_vez(ajustados)
+	ajustados = _suavizar(ajustados)
+	return _encaixar_uma_vez(ajustados)
+
+
+func _encaixar_uma_vez(pontos: Array) -> Array:
+	# Procura por quase toda a largura da celula: o canal do pacote pode
+	# atravessar de um lado ao outro, e uma busca curta nunca o alcanca.
+	var busca := tamanho_do_modulo * 0.45
 	var ajustados: Array = []
-	for i in range(densos.size()):
-		var p: Vector3 = densos[i]
-		if i == 0 or i == densos.size() - 1:
+	for i in range(pontos.size()):
+		var p: Vector3 = pontos[i]
+		if i == 0 or i == pontos.size() - 1:
 			ajustados.append(p)
 			continue
-		var frente: Vector3 = densos[i + 1] - densos[i - 1]
+		var frente: Vector3 = pontos[i + 1] - pontos[i - 1]
 		frente.y = 0.0
 		if frente.length_squared() < 0.001:
+			ajustados.append(p)
+			continue
+		# Dentro do lago o ponto mais baixo e o meio da bacia, nao o canal:
+		# encaixar ali faz a fita mergulhar e voltar, em zigue-zague.
+		if not _e_celula_de_rio(p):
 			ajustados.append(p)
 			continue
 		var lado := frente.normalized().cross(Vector3.UP).normalized()
 		var melhor := p
 		var melhor_altura := _altura_do_chao(p.x, p.z)
-		for k in range(-6, 7):
-			var candidato: Vector3 = p + lado * (float(k) / 6.0) * busca
-			if not _tem_peca_de_agua(candidato):
+		for k in range(-12, 13):
+			var candidato: Vector3 = p + lado * (float(k) / 12.0) * busca
+			if not _e_celula_de_rio(candidato):
 				continue
 			var altura := _altura_do_chao(candidato.x, candidato.z)
 			if altura < melhor_altura:
 				melhor_altura = altura
 				melhor = candidato
 		ajustados.append(melhor)
-
-	for _passada in range(2):
-		var suaves: Array = [ajustados[0]]
-		for i in range(1, ajustados.size() - 1):
-			var a: Vector3 = ajustados[i - 1]
-			var b: Vector3 = ajustados[i]
-			var c: Vector3 = ajustados[i + 1]
-			var media := Vector3((a.x + b.x * 2.0 + c.x) * 0.25, 0.0, (a.z + b.z * 2.0 + c.z) * 0.25)
-			suaves.append(media if _tem_peca_de_agua(media) else b)
-		suaves.append(ajustados[ajustados.size() - 1])
-		ajustados = suaves
 	return ajustados
+
+
+func _suavizar(pontos: Array) -> Array:
+	if pontos.size() < 3:
+		return pontos
+	var suaves: Array = [pontos[0]]
+	for i in range(1, pontos.size() - 1):
+		var a: Vector3 = pontos[i - 1]
+		var b: Vector3 = pontos[i]
+		var c: Vector3 = pontos[i + 1]
+		var media := Vector3((a.x + b.x * 2.0 + c.x) * 0.25, 0.0, (a.z + b.z * 2.0 + c.z) * 0.25)
+		suaves.append(media if _tem_peca_de_agua(media) else b)
+	suaves.append(pontos[pontos.size() - 1])
+	return suaves
+
+
+## O ponto cai numa celula que tem peca de canal de rio?
+func _e_celula_de_rio(p: Vector3) -> bool:
+	var celula := Vector2i(
+		roundi(p.x / tamanho_do_modulo), roundi(p.z / tamanho_do_modulo))
+	var plano: Variant = _celulas_de_agua.get(celula)
+	return plano != null and (plano as Dictionary)["tipo"] == "rio"
 
 
 ## O ponto cai numa celula que tem peca de rio ou de lago?

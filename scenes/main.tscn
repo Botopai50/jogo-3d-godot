@@ -28,13 +28,13 @@ fog_density = 0.00025
 fog_aerial_perspective = 0.2
 fog_sky_affect = 0.0
 
-[node name="Mundo" type="Node3D" unique_id=826506326]
+[node name="Mundo" type="Node3D" unique_id=2073392530]
 script = ExtResource("1_tefeu")
 
-[node name="Ambiente" type="WorldEnvironment" parent="." unique_id=108099934]
+[node name="Ambiente" type="WorldEnvironment" parent="." unique_id=1725096679]
 environment = SubResource("Environment_a8y0u")
 
-[node name="Sol" type="DirectionalLight3D" parent="." unique_id=2090239416]
+[node name="Sol" type="DirectionalLight3D" parent="." unique_id=2004676960]
 transform = Transform3D(-0.70710677, 0.5572077, -0.4353384, 0, 0.6156615, 0.7880107, 0.70710677, 0.5572077, -0.4353384, 0, 0, 0)
 light_color = Color(1, 0.97, 0.9, 1)
 light_energy = 0.55
@@ -43,10 +43,10 @@ shadow_bias = 0.06
 directional_shadow_mode = 1
 directional_shadow_max_distance = 260.0
 
-[node name="Ilha" type="Node3D" parent="." unique_id=1877205694 instance=ExtResource("2_o6xl0")]
+[node name="Ilha" type="Node3D" parent="." unique_id=1422863591 instance=ExtResource("2_o6xl0")]
 script = ExtResource("3_tipki")
 
-[node name="Oceano" type="Node3D" parent="." unique_id=250063384 instance=ExtResource("4_85g3d")]
+[node name="Oceano" type="Node3D" parent="." unique_id=1798576322 instance=ExtResource("4_85g3d")]
 
 [node name="Personagem" type="CharacterBody3D" parent="." unique_id=977589049 instance=ExtResource("5_choun")]
 collision_layer = 2
@@ -54,9 +54,9 @@ collision_mask = 5
 floor_max_angle = 0.87266463
 script = ExtResource("6_ya4ey")
 
-[node name="Interface" type="CanvasLayer" parent="." unique_id=1507166905]
+[node name="Interface" type="CanvasLayer" parent="." unique_id=1287523285]
 
-[node name="Aviso" type="PanelContainer" parent="Interface" unique_id=578936410]
+[node name="Aviso" type="PanelContainer" parent="Interface" unique_id=869107835]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
@@ -68,7 +68,7 @@ offset_right = 300.0
 offset_bottom = -20.0
 mouse_filter = 2
 
-[node name="Texto" type="Label" parent="Interface/Aviso" unique_id=1814271335]
+[node name="Texto" type="Label" parent="Interface/Aviso" unique_id=190502023]
 layout_mode = 2
 text = "Clique para jogar
 WASD mover  |  Shift correr  |  Espaco pular  |  Esc liberar o mouse"
