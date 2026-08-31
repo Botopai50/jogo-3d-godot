@@ -115,6 +115,32 @@ func rodar() -> void:
 	print("  modulos distintos no mapa: %d de %d" % [usados.size(), ilha.modulos_disponiveis()])
 	checar(usados.size() > 60, "o mapa usa muitas pecas distintas", "(%d distintos)" % usados.size())
 
+	# As montanhas do pacote sao cascas sem fundo: se ficarem acima da
+	# superficie da para ver por baixo, para dentro delas. E sem forma de
+	# colisao o jogador atravessa a peca como se fosse cenario de fundo.
+	var sem_colisao := 0
+	var boiando := 0
+	var pior_folga := -INF
+	for detalhe in ilha.get_node("Detalhes").get_children():
+		if detalhe.get_node_or_null("Colisao") == null:
+			sem_colisao += 1
+		var malha := detalhe.get_node_or_null("Malha") as MeshInstance3D
+		if malha == null or malha.mesh == null:
+			continue
+		# Base da peca no mundo, contra o chao no mesmo ponto.
+		var caixa: AABB = malha.mesh.get_aabb()
+		var base: float = detalhe.position.y + (caixa.position.y + malha.transform.origin.y) * detalhe.scale.y
+		var chao: float = ilha._altura_do_chao(detalhe.position.x, detalhe.position.z)
+		var folga: float = base - chao
+		pior_folga = maxf(pior_folga, folga)
+		if folga > 0.05:
+			boiando += 1
+	# Folga negativa = base enterrada, que e o desejado. Positiva = boiando.
+	print("  pecas sem colisao: %d | boiando: %d | folga maxima da base: %.2f m" % [
+		sem_colisao, boiando, pior_folga])
+	checar(sem_colisao == 0, "montanhas e pedras tem colisao", "(%d sem)" % sem_colisao)
+	checar(boiando == 0, "nenhuma peca solta fica acima do chao", "(%d boiando)" % boiando)
+
 	print("--- assentar no chao ---")
 	await avancar(90)
 	var altura_parado := personagem.global_position.y
