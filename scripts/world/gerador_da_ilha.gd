@@ -6,37 +6,23 @@ extends Node3D
 ## Todos os modulos do pacote tem as quatro bordas na altura zero, entao eles
 ## encaixam entre si em qualquer combinacao e em qualquer rotacao multipla de
 ## 90 graus. A ilha e desenhada como um disco de raio irregular sobre a grade,
-## e cada celula recebe um modulo escolhido pela faixa de relevo em que ela cai
-## (praia na borda, montanhas e picos no miolo).
+## e cada celula recebe um modulo escolhido pela faixa de relevo em que ela cai.
 ##
-## Para expandir o mapa depois basta aumentar [member raio_em_modulos] ou
-## acrescentar nomes as listas de [constant FAIXAS]: nada precisa ser
-## reconstruido a mao.
+## As faixas nao sao escritas a mao: vem de scenes/modules/faixas.json, que o
+## build monta a partir do catalogo medindo a altura de cada peca. Hoje sao 173
+## modulos de terreno, todos os do pacote que encaixam na grade de 100 metros e
+## nao afundam abaixo do nivel do mar.
+##
+## Para expandir o mapa depois basta aumentar [member raio_em_modulos]: nada
+## precisa ser reconstruido a mao.
 
 const PASTA_TERRENO := "res://scenes/modules/terrain/"
 const PASTA_PROPS := "res://scenes/modules/props/"
 const PASTA_ILHOTAS := "res://scenes/modules/islets/"
 const SHADER_TERRENO_CONTINUO := preload("res://shaders/terreno_continuo.gdshader")
 
-## Modulos por faixa de relevo, do centro para a borda.
-##
-## Todos os nomes daqui foram escolhidos entre os modulos do pacote que nao
-## descem abaixo do nivel do mar: boa parte dos modulos Grid sao bacias (o
-## grupo "d", por exemplo, sao enseadas que afundam ate 6 metros) e usa-las no
-## miolo da ilha abriria pocos alagados.
-const FAIXAS := {
-	"pico": ["CPT_Terrain_L_b_37", "CPT_Terrain_L_b_36", "CPT_Terrain_L_b_39",
-		"CPT_Terrain_L_g_03", "CPT_Terrain_L_g_04"],
-	"montanha": ["CPT_Terrain_L_e_17", "CPT_Terrain_L_b_14", "CPT_Terrain_L_b_30",
-		"CPT_Terrain_L_b_16", "CPT_Terrain_L_g_02", "CPT_Terrain_L_b_45", "CPT_Terrain_L_b_31"],
-	"morro": ["CPT_Terrain_L_e_16", "CPT_Terrain_L_e_14", "CPT_Terrain_L_e_15",
-		"CPT_Terrain_L_e_02", "CPT_Terrain_L_e_09", "CPT_Terrain_L_b_08", "CPT_Terrain_L_f_01"],
-	"colina": ["CPT_Terrain_L_b_05", "CPT_Terrain_L_e_11", "CPT_Terrain_L_f_11",
-		"CPT_Terrain_L_f_06", "CPT_Terrain_L_f_10", "CPT_Terrain_L_e_10"],
-	"planicie": ["CPT_Terrain_L_a_01"],
-	"rochedo": ["CPT_Terrain_L_a_02"],
-	"praia": ["CPT_Terrain_L_a_03"],
-}
+
+const FAIXAS_GERADAS := "res://scenes/modules/faixas.json"
 
 ## Montanhas isoladas usadas como ponto de referencia visual.
 const MARCOS := ["CPT_Mountain_L_e_01", "CPT_Mountain_L_d_02"]
@@ -76,6 +62,7 @@ var _celulas: Dictionary = {}
 var _celula_de_nascimento := Vector2i.ZERO
 var _aleatorio := RandomNumberGenerator.new()
 var _material_terreno_continuo: ShaderMaterial
+var _faixas: Dictionary = {}
 
 
 func _ready() -> void:
@@ -91,6 +78,7 @@ func gerar() -> void:
 	_celulas.clear()
 	_aleatorio.seed = semente
 
+	_carregar_faixas()
 	_marcar_terra()
 	var raiz_terreno := _novo_grupo("Terreno")
 	var raiz_detalhes := _novo_grupo("Detalhes")
@@ -102,6 +90,27 @@ func gerar() -> void:
 	_montar_marcos(raiz_detalhes)
 	_montar_rochas(raiz_detalhes)
 	_montar_ilhotas(raiz_ilhotas)
+
+
+## Le as faixas de relevo montadas pelo build. Cada faixa e a lista de modulos
+## do pacote cuja altura maxima cai naquele intervalo.
+func _carregar_faixas() -> void:
+	var arquivo := FileAccess.open(FAIXAS_GERADAS, FileAccess.READ)
+	if arquivo == null:
+		push_error("faixas ausentes; rode tools/build_modules.gd antes")
+		return
+	var dados: Variant = JSON.parse_string(arquivo.get_as_text())
+	arquivo.close()
+	if dados is Dictionary:
+		_faixas = dados
+
+
+## Quantos modulos distintos o cenario tem a disposicao.
+func modulos_disponiveis() -> int:
+	var total := 0
+	for faixa: String in _faixas:
+		total += (_faixas[faixa] as Array).size()
+	return total
 
 
 ## Onde o personagem deve nascer: centro da celula reservada, um pouco acima do
@@ -170,9 +179,16 @@ func _altura_macro_do_terreno(x: float, z: float) -> float:
 ## entre o que o jogador ve e a superficie onde ele pisa.
 func _deformar_modulo(modulo: Node3D, escala_vertical: float) -> void:
 	var visual := modulo.get_node_or_null("Malha") as MeshInstance3D
-	var colisao := modulo.get_node_or_null("Colisao") as CollisionShape3D
-	if visual == null or visual.mesh == null or colisao == null:
+	if visual == null or visual.mesh == null:
 		return
+	# A cena de modulo vem sem colisao: assar uma no build seria desperdicio,
+	# porque a forma so fica correta depois que os vertices recebem a altura
+	# global do terreno, o que acontece aqui.
+	var colisao := modulo.get_node_or_null("Colisao") as CollisionShape3D
+	if colisao == null:
+		colisao = CollisionShape3D.new()
+		colisao.name = "Colisao"
+		modulo.add_child(colisao)
 
 	var origem := visual.mesh
 	var transformacao_original := visual.transform
@@ -302,7 +318,7 @@ func _faixa_da_celula(gx: int, gz: int) -> String:
 		return "morro"
 	if intensidade > 0.23:
 		return "colina"
-	return "rochedo" if sorte > 0.96 else "planicie"
+	return "colina" if sorte > 0.96 else "planicie"
 
 
 func _escala_vertical(faixa: String, gx: int, gz: int) -> float:
@@ -317,8 +333,6 @@ func _escala_vertical(faixa: String, gx: int, gz: int) -> float:
 			return 0.48 + intensidade * 0.68 + variacao
 		"colina":
 			return 0.30 + intensidade * 0.72 + variacao
-		"rochedo":
-			return 0.48 + intensidade * 0.45 + variacao
 		_:
 			return 0.34 + variacao
 
@@ -331,7 +345,9 @@ func _montar_terreno(raiz: Node3D) -> void:
 		var gx: int = celula.x
 		var gz: int = celula.y
 		var faixa := _faixa_da_celula(gx, gz)
-		var opcoes: Array = FAIXAS[faixa]
+		var opcoes: Array = _faixas.get(faixa, _faixas.get("planicie", []))
+		if opcoes.is_empty():
+			continue
 		var nome: String = opcoes[int(_ruido(gx, gz, 3) * opcoes.size()) % opcoes.size()]
 		var modulo := _cena(PASTA_TERRENO, nome).instantiate() as Node3D
 		modulo.name = "%s_%d_%d" % [faixa, gx, gz]
@@ -453,7 +469,7 @@ func _celulas_planas() -> Array:
 		if celula == _celula_de_nascimento:
 			continue
 		var faixa := _faixa_da_celula(celula.x, celula.y)
-		if faixa == "planicie" or faixa == "praia" or faixa == "colina" or faixa == "rochedo":
+		if faixa == "planicie" or faixa == "colina":
 			planas.append(celula)
 	planas.sort_custom(func(a: Vector2i, b: Vector2i) -> bool:
 		return a.y < b.y if a.y != b.y else a.x < b.x)

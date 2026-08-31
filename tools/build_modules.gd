@@ -1,53 +1,89 @@
-# Ferramenta de build: converte cada .fbx do pacote Grid em uma cena de modulo
-# reutilizavel do Godot (StaticBody3D + malha + colisao trimesh assada).
+# Ferramenta de build: converte os modulos do pacote Grid em cenas reutilizaveis
+# do Godot.
 #
-# Os modulos de terreno sao recentrados para que a pegada de 100x100 fique
-# centrada na origem: assim da para posicionar por celula da grade e girar em
-# multiplos de 90 graus sem sair do lugar.
+# O pacote inteiro (3.263 arquivos) fica no projeto e e indexado por
+# assets/grid/catalogo.json. So entram no build do jogo os modulos que a ilha
+# realmente pode usar, escolhidos pelo que foi medido no catalogo: quem tem
+# pegada de 100 metros, as quatro bordas na altura zero e nao afunda abaixo do
+# nivel do mar. O resto continua disponivel no projeto para uso futuro.
+#
+# A colisao nao e assada aqui: o gerador da ilha deforma os vertices de cada
+# peca com a altura global do terreno e reconstroi a forma de colisao a partir
+# da malha ja deformada, entao uma colisao assada seria descartada.
 #
 # Uso: godot --headless --path . --script tools/build_modules.gd
 extends SceneTree
 
-const MATERIAL_TERRENO := "res://materials/terreno_atlas.tres"
-const DIR_COLISAO := "res://scenes/modules/colisao"
+const CATALOGO := "res://assets/grid/catalogo.json"
 const DIR_MALHAS := "res://scenes/modules/malhas"
+const DIR_FAIXAS := "res://scenes/modules/faixas.json"
 
-# origem -> (destino, recentrar_xz)
-const GRUPOS := {
-	"res://assets/grid/terrain": ["res://scenes/modules/terrain", true],
-	"res://assets/grid/props": ["res://scenes/modules/props", true],
-	"res://assets/grid/islets": ["res://scenes/modules/islets", true],
+## Pastas de destino por tipo de peca.
+const DESTINOS := {
+	"terreno": "res://scenes/modules/terrain",
+	"props": "res://scenes/modules/props",
+	"ilhotas": "res://scenes/modules/islets",
 }
 
-var material: Material
+## Montanhas isoladas e rochas usadas como ponto de referencia visual.
+const PROPS := [
+	"CPT_Mountain_L_e_01", "CPT_Mountain_L_d_02",
+	"CPT_Mountain_S_a_01", "CPT_Mountain_S_b_01", "CPT_Mountain_S_c_02",
+]
+## Ilhotas fundeadas no mar em volta da ilha.
+const ILHOTAS := ["CPT_Island_S_c_01", "CPT_Island_S_c_02", "CPT_Island_S_c_03", "CPT_Island_M_a_02"]
 
 
-func coletar_malhas(node: Node, acumulado: Transform3D, saida: Array) -> void:
-	var t := acumulado
-	if node is Node3D:
-		t = acumulado * (node as Node3D).transform
-	if node is MeshInstance3D and (node as MeshInstance3D).mesh != null:
-		saida.append({"mesh": (node as MeshInstance3D).mesh, "transform": t})
-	for filho in node.get_children():
-		coletar_malhas(filho, t, saida)
+func ler_catalogo() -> Array:
+	var arquivo := FileAccess.open(CATALOGO, FileAccess.READ)
+	if arquivo == null:
+		push_error("catalogo ausente; rode tools/build_catalogo.gd antes")
+		return []
+	var dados: Variant = JSON.parse_string(arquivo.get_as_text())
+	arquivo.close()
+	return dados if dados is Array else []
 
 
-func construir(caminho_fbx: String, destino: String, recentrar: bool) -> bool:
-	var cena: PackedScene = load(caminho_fbx)
+## Dentro de um .fbx de LOD ha tres malhas sobrepostas. So a LOD0 interessa.
+func malhas_uteis(raiz: Node) -> Array:
+	var todas: Array = []
+	var pilha: Array = [{"no": raiz, "transformada": Transform3D.IDENTITY}]
+	while not pilha.is_empty():
+		var item: Dictionary = pilha.pop_back()
+		var no: Node = item["no"]
+		var t: Transform3D = item["transformada"]
+		if no is Node3D:
+			t = t * (no as Node3D).transform
+		if no is MeshInstance3D and (no as MeshInstance3D).mesh != null:
+			todas.append({"nome": no.name, "malha": (no as MeshInstance3D).mesh, "transformada": t})
+		for filho in no.get_children():
+			pilha.append({"no": filho, "transformada": t})
+	var lod0: Array = []
+	for m in todas:
+		if String(m["nome"]).ends_with("LOD0"):
+			lod0.append(m)
+	return lod0 if not lod0.is_empty() else todas
+
+
+## Gera uma cena de modulo: um StaticBody3D com a malha ja centrada na origem.
+## Centrar a pegada permite posicionar por celula da grade e girar em multiplos
+## de 90 graus sem a peca sair do lugar.
+func construir(entrada: Dictionary, destino: String, recentrar: bool) -> bool:
+	var caminho: String = entrada["caminho"]
+	var cena: PackedScene = load(caminho)
 	if cena == null:
-		push_error("nao consegui carregar " + caminho_fbx)
+		push_error("nao consegui carregar " + caminho)
 		return false
 	var origem := cena.instantiate()
-	var malhas: Array = []
-	coletar_malhas(origem, Transform3D.IDENTITY, malhas)
+	var malhas := malhas_uteis(origem)
 	if malhas.is_empty():
-		push_error("sem malhas em " + caminho_fbx)
 		origem.free()
+		push_error("sem malhas em " + caminho)
 		return false
 
 	var caixa := AABB()
 	for i in range(malhas.size()):
-		var a: AABB = (malhas[i]["transform"] as Transform3D) * (malhas[i]["mesh"] as Mesh).get_aabb()
+		var a: AABB = (malhas[i]["transformada"] as Transform3D) * (malhas[i]["malha"] as Mesh).get_aabb()
 		caixa = a if i == 0 else caixa.merge(a)
 
 	var deslocamento := Transform3D.IDENTITY
@@ -55,26 +91,21 @@ func construir(caminho_fbx: String, destino: String, recentrar: bool) -> bool:
 		var centro := caixa.position + caixa.size * 0.5
 		deslocamento.origin = Vector3(-centro.x, 0.0, -centro.z)
 
-	var nome := caminho_fbx.get_file().get_basename()
+	var nome: String = entrada["nome"]
 	var raiz := StaticBody3D.new()
 	raiz.name = nome
 
 	for i in range(malhas.size()):
-		var t: Transform3D = deslocamento * (malhas[i]["transform"] as Transform3D)
-		var m: Mesh = malhas[i]["mesh"]
-
+		var t: Transform3D = deslocamento * (malhas[i]["transformada"] as Transform3D)
 		var sufixo := "" if malhas.size() == 1 else "_%d" % (i + 1)
 
 		# A malha vem embutida no .fbx importado. Salva-la como recurso binario
-		# proprio mantem as cenas de modulo pequenas e legiveis em texto, e faz
-		# todos os modulos compartilharem o mesmo material do atlas.
-		var malha_salva: ArrayMesh = m.duplicate(true)
-		for si in range(malha_salva.get_surface_count()):
-			malha_salva.surface_set_material(si, material)
+		# proprio mantem a cena de modulo pequena e legivel em texto.
+		var copia: ArrayMesh = (malhas[i]["malha"] as Mesh).duplicate(true)
 		var caminho_malha := "%s/%s%s.res" % [DIR_MALHAS, nome, sufixo]
-		var err_malha := ResourceSaver.save(malha_salva, caminho_malha)
-		if err_malha != OK:
-			push_error("falha ao salvar malha %s: %s" % [caminho_malha, error_string(err_malha)])
+		var err := ResourceSaver.save(copia, caminho_malha)
+		if err != OK:
+			push_error("falha ao salvar malha %s: %s" % [caminho_malha, error_string(err)])
 			origem.free()
 			return false
 
@@ -85,25 +116,11 @@ func construir(caminho_fbx: String, destino: String, recentrar: bool) -> bool:
 		raiz.add_child(mi)
 		mi.owner = raiz
 
-		var forma: ConcavePolygonShape3D = m.create_trimesh_shape()
-		var caminho_forma := "%s/%s%s.res" % [DIR_COLISAO, nome, sufixo]
-		var err := ResourceSaver.save(forma, caminho_forma)
-		if err != OK:
-			push_error("falha ao salvar colisao %s: %s" % [caminho_forma, error_string(err)])
-			origem.free()
-			return false
-
-		var cs := CollisionShape3D.new()
-		cs.name = "Colisao" if malhas.size() == 1 else "Colisao%d" % (i + 1)
-		cs.shape = load(caminho_forma)
-		cs.transform = t
-		raiz.add_child(cs)
-		cs.owner = raiz
-
 	var empacotada := PackedScene.new()
 	if empacotada.pack(raiz) != OK:
-		push_error("falha ao empacotar " + nome)
 		origem.free()
+		raiz.free()
+		push_error("falha ao empacotar " + nome)
 		return false
 	var destino_cena := "%s/%s.tscn" % [destino, nome]
 	var err2 := ResourceSaver.save(empacotada, destino_cena)
@@ -115,40 +132,74 @@ func construir(caminho_fbx: String, destino: String, recentrar: bool) -> bool:
 	return true
 
 
+## Faixa de relevo de um modulo, pela altura maxima medida no catalogo.
+func faixa_de(entrada: Dictionary) -> String:
+	var altura: float = entrada["y_max"]
+	if altura <= 0.3:
+		return "planicie"
+	if altura <= 6.0:
+		return "colina"
+	if altura <= 13.0:
+		return "morro"
+	if altura <= 26.0:
+		return "montanha"
+	return "pico"
+
+
 func _init() -> void:
-	material = load(MATERIAL_TERRENO)
-	if material == null:
-		push_error("material do terreno nao encontrado; rode tools/build_materials.gd antes")
+	var catalogo := ler_catalogo()
+	if catalogo.is_empty():
 		quit(1)
 		return
-	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR_COLISAO))
+	for destino: String in DESTINOS.values():
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(destino))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR_MALHAS))
 
-	var total := 0
-	var falhas := 0
-	for origem in GRUPOS:
-		var destino: String = GRUPOS[origem][0]
-		var recentrar: bool = GRUPOS[origem][1]
-		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(destino))
-		var d := DirAccess.open(origem)
-		if d == null:
-			push_error("pasta ausente: " + origem)
-			falhas += 1
-			continue
-		var arquivos: Array = []
-		d.list_dir_begin()
-		var f := d.get_next()
-		while f != "":
-			if f.ends_with(".fbx"):
-				arquivos.append(f)
-			f = d.get_next()
-		arquivos.sort()
-		for arquivo in arquivos:
-			if construir(origem.path_join(arquivo), destino, recentrar):
-				total += 1
-			else:
-				falhas += 1
-		print("%s -> %s: %d arquivos" % [origem, destino, arquivos.size()])
+	var por_nome := {}
+	for entrada: Dictionary in catalogo:
+		por_nome[entrada["nome"]] = entrada
 
-	print("modulos gerados: %d | falhas: %d" % [total, falhas])
+	# Terreno: tudo que encaixa na grade de 100 metros, nao e copia de LOD e nao
+	# afunda. Boa parte do pacote sao bacias que virariam pocos alagados.
+	var terreno: Array = []
+	for entrada: Dictionary in catalogo:
+		if entrada["categoria"] != "Terrain":
+			continue
+		if not entrada["encaixavel"] or entrada["pegada"] != 100.0:
+			continue
+		if entrada["lod"] or entrada["y_min"] < -0.3:
+			continue
+		terreno.append(entrada)
+	terreno.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["nome"] < b["nome"])
+
+	var falhas := 0
+	var faixas := {"planicie": [], "colina": [], "morro": [], "montanha": [], "pico": []}
+	for entrada: Dictionary in terreno:
+		if construir(entrada, DESTINOS["terreno"], true):
+			(faixas[faixa_de(entrada)] as Array).append(entrada["nome"])
+		else:
+			falhas += 1
+
+	for lista_nome: String in ["props", "ilhotas"]:
+		var nomes: Array = PROPS if lista_nome == "props" else ILHOTAS
+		for nome: String in nomes:
+			if not por_nome.has(nome):
+				push_error("modulo ausente no catalogo: " + nome)
+				falhas += 1
+				continue
+			if not construir(por_nome[nome], DESTINOS[lista_nome], true):
+				falhas += 1
+
+	var arquivo := FileAccess.open(DIR_FAIXAS, FileAccess.WRITE)
+	if arquivo == null:
+		push_error("nao consegui escrever " + DIR_FAIXAS)
+		quit(1)
+		return
+	arquivo.store_string(JSON.stringify(faixas, "  "))
+	arquivo.close()
+
+	print("modulos de terreno no build: %d" % terreno.size())
+	for faixa: String in faixas:
+		print("  %-10s %d" % [faixa, (faixas[faixa] as Array).size()])
+	print("props: %d | ilhotas: %d | falhas: %d" % [PROPS.size(), ILHOTAS.size(), falhas])
 	quit(0 if falhas == 0 else 1)

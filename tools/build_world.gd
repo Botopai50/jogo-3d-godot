@@ -24,7 +24,7 @@ func salvar(cena_raiz: Node, caminho: String) -> Error:
 
 
 func preparar_malha_de_agua() -> bool:
-	var cena: PackedScene = load("res://assets/grid/water/Water_H_a_01.fbx")
+	var cena: PackedScene = load("res://assets/grid/terrain_assets/Water/Water_H_a_01.fbx")
 	if cena == null:
 		push_error("malha de agua do pacote nao encontrada")
 		return false
