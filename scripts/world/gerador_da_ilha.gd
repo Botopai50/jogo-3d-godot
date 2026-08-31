@@ -24,6 +24,7 @@ const PASTA_NUVENS := "res://scenes/modules/clouds/"
 const PASTA_RIO := "res://scenes/modules/river/"
 const SHADER_TERRENO_CONTINUO := preload("res://shaders/terreno_continuo.gdshader")
 const SHADER_COSTA_ORGANICA := preload("res://shaders/costa_organica.gdshader")
+const HYDROLOGY_MANAGER := preload("res://scripts/hydrology/hydrology_manager.gd")
 
 ## Faixas de relevo montadas pelo build a partir do catalogo do pacote.
 const FAIXAS_GERADAS := "res://scenes/modules/faixas.json"
@@ -126,6 +127,7 @@ var _lago_pronto := false
 var _superficie_da_celula: Dictionary = {}
 var _ruido_de_altura_amplo := FastNoiseLite.new()
 var _ruido_de_altura_fino := FastNoiseLite.new()
+var _hydrology: HydrologyManager
 
 
 func _ready() -> void:
@@ -153,7 +155,14 @@ func gerar() -> void:
 	_carregar_acervo()
 	_marcar_terra()
 	if gerar_rio:
-		_planejar_agua()
+		_hydrology = HYDROLOGY_MANAGER.new()
+		_hydrology.name = "Hydrology"
+		add_child(_hydrology)
+		_hydrology.plan_world(_celulas, tamanho_do_modulo,
+			Callable(self, "_altura_macro_do_terreno"), ACERVO_GERADO,
+			semente, _material_da_agua())
+		for celula: Vector2i in _hydrology.occupied_cells():
+			_celulas_de_agua[celula] = {"tipo": "hidrologia"}
 	var raiz_terreno := _novo_grupo("Terreno")
 	var raiz_detalhes := _novo_grupo("Detalhes")
 	var raiz_ilhotas := _novo_grupo("Ilhotas")
@@ -1215,13 +1224,14 @@ func _mesma_direcao(a: int, b: int) -> bool:
 
 func _montar_modulos_do_rio(raiz: Node3D) -> void:
 	var escala_uniforme := tamanho_do_modulo / 100.0
-	for item: Dictionary in _pecas_escolhidas:
-		var celula: Vector2i = item["celula"]
-		var escolha: Dictionary = item["escolha"]
-		var peca := _cena(PASTA_RIO, escolha["nome"]).instantiate() as Node3D
-		peca.name = "%s_%d_%d" % [item["tipo"], celula.x, celula.y]
+	if _hydrology == null:
+		return
+	for placement: Dictionary in _hydrology.placements:
+		var celula: Vector2i = placement["cell"]
+		var peca := _cena(PASTA_RIO, placement["name"]).instantiate() as Node3D
+		peca.name = "HydrologyTile_%d_%d" % [celula.x, celula.y]
 		peca.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
-		peca.rotation.y = float(escolha["voltas"]) * PI * 0.5
+		peca.rotation.y = float(placement["rotation"]) * PI * 0.5
 		# Escala vertical igual a horizontal: canal e bacia precisam manter a
 		# propria proporcao, senao viram riscos rasos no chao.
 		_deformar_modulo(peca, escala_uniforme)
@@ -1578,16 +1588,24 @@ func _montar_laminas_antigo(raiz: Node3D) -> void:
 
 
 func tem_agua() -> bool:
-	return false
+	return _hydrology != null and _hydrology.get_node_or_null("WaterGeometry") != null
 
 
 func centro_do_lago_em_metros() -> Vector3:
+	if _hydrology != null:
+		for tile: WaterTileData in _hydrology.tiles.values():
+			if tile.water_type == WaterTileData.WaterType.LAKE:
+				return tile.world_origin() + Vector3(0.0, tile.water_height, 0.0)
 	var x := float(_centro_do_lago.x) * tamanho_do_modulo
 	var z := float(_centro_do_lago.y) * tamanho_do_modulo
 	return Vector3(x, _altura_do_chao(x, z) + lamina_do_rio, z)
 
 
 func ponto_do_rio_em_metros(fracao: float) -> Vector3:
+	if _hydrology != null and not _hydrology.paths.is_empty():
+		var path: RiverPath = _hydrology.paths[0]
+		var indice_novo := clampi(int(fracao * float(path.points.size())), 0, path.points.size() - 1)
+		return path.points[indice_novo]
 	if _caminho_do_rio.is_empty():
 		return centro_do_lago_em_metros()
 	var indice := clampi(int(fracao * float(_caminho_do_rio.size())), 0, _caminho_do_rio.size() - 1)

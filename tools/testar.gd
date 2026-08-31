@@ -141,77 +141,31 @@ func rodar() -> void:
 	checar(sem_colisao == 0, "montanhas e pedras tem colisao", "(%d sem)" % sem_colisao)
 	checar(boiando == 0, "nenhuma peca solta fica acima do chao", "(%d boiando)" % boiando)
 
-	print("--- rio ---")
-	var rio := ilha.get_node_or_null("Rio")
-	checar(not ilha.tem_agua(), "o sistema de agua foi removido")
-	var celulas_de_rio := 0
-	var celulas_de_lago := 0
-	var pior_desalinho := 0.0
-	var pior_fresta := 0.0
-	for item in ilha._pecas_escolhidas:
-		if item["tipo"] == "rio":
-			celulas_de_rio += 1
-			pior_desalinho = maxf(pior_desalinho, float(item["escolha"].get("desalinho", 0.0)))
-		else:
-			celulas_de_lago += 1
-			pior_fresta = maxf(pior_fresta, float(item["escolha"].get("erro", 0.0)))
-	print("  celulas de lago: %d | pior fresta entre margens: %.2f m" % [celulas_de_lago, pior_fresta])
-	checar(celulas_de_lago == 0, "nao existe lago retangular separado", "(%d celulas)" % celulas_de_lago)
-	print("  celulas de rio: %d | pior desalinho do leito: %.3f do lado (%.1f m)" % [
-		celulas_de_rio, pior_desalinho, pior_desalinho * ilha.tamanho_do_modulo])
-	checar(celulas_de_rio >= 2, "o rio tem trecho suficiente", "(%d celulas)" % celulas_de_rio)
-	# O pacote nao padroniza onde o canal cruza a borda, entao encadear pecas
-	# sempre deixa alguma sobra. Acima de um decimo do lado a emenda aparece.
-	checar(pior_desalinho < 0.10, "as pecas de rio encadeiam alinhadas",
-		"(%.1f m)" % (pior_desalinho * ilha.tamanho_do_modulo))
-	checar(rio != null, "os modulos CPT_River continuam no mapa")
-	checar(rio != null and rio.get_node_or_null("LaminaDoLago") == null, "nao existe lamina de lago")
-	checar(rio != null and rio.get_node_or_null("LaminaDoRio") == null, "nao existe lamina de rio")
-
-	# Toda a agua doce tem que ficar dentro das pecas CPT_River / CPT_River_End.
-	# Um vertice fora delas e agua boiando sobre terreno comum.
-	var fora := 0
-	var total_de_vertices := 0
-	for nome_da_lamina in ["LaminaDoLago", "LaminaDoRio"]:
-		var lamina := rio.get_node_or_null(nome_da_lamina) as MeshInstance3D
-		if lamina == null or lamina.mesh == null:
-			continue
-		for v in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
-			var p: Vector3 = lamina.transform * v
-			total_de_vertices += 1
-			if not ilha._tem_peca_de_agua(p):
-				fora += 1
-	print("  vertices de agua: %d | fora de peca de rio ou lago: %d" % [total_de_vertices, fora])
-	checar(total_de_vertices == 0, "nenhuma geometria de agua doce e criada", "(%d vertices)" % total_de_vertices)
-	checar(fora == 0, "nenhuma agua fica fora dos modulos CPT_River", "(%d vertices)" % fora)
-
-	# O contrario tambem: nenhuma peca do pacote pode ficar seca. A depressao de
-	# CPT_River_End e um poco largo, e uma faixa de agua de largura fixa nao o
-	# enchia; a lamina passou a ser a propria depressao inundada.
-	var agua_por_celula := {}
-	for nome_da_lamina in ["LaminaDoRio", "LaminaDoLago"]:
-		var lamina := rio.get_node_or_null(nome_da_lamina) as MeshInstance3D
-		if lamina == null or lamina.mesh == null:
-			continue
-		for v in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
-			var p: Vector3 = lamina.transform * v
-			var c := Vector2i(
-				roundi(p.x / ilha.tamanho_do_modulo), roundi(p.z / ilha.tamanho_do_modulo))
-			agua_por_celula[c] = int(agua_por_celula.get(c, 0)) + 1
-	var secas := 0
-	for item in ilha._pecas_escolhidas:
-		if int(agua_por_celula.get(item["celula"], 0)) == 0:
-			secas += 1
-	print("  pecas de agua secas: %d de %d" % [secas, ilha._pecas_escolhidas.size()])
-	checar(secas == ilha._pecas_escolhidas.size(), "todos os modulos de rio ficam sem agua", "(%d secos)" % secas)
-
-	# Nenhuma celula pode receber terreno comum e peca de rio ao mesmo tempo.
-	var repetidas := 0
-	for item in ilha._pecas_escolhidas:
-		var c: Vector2i = item["celula"]
-		if terreno.get_node_or_null("planicie_%d_%d" % [c.x, c.y]) != null:
-			repetidas += 1
-	checar(repetidas == 0, "nenhuma celula recebe terreno e rio ao mesmo tempo")
+	print("--- hidrologia nova ---")
+	var hydrology: HydrologyManager = ilha.get_node_or_null("Hydrology")
+	checar(hydrology != null, "HydrologyManager existe separado do Terrain Grid")
+	checar(ilha.tem_agua(), "a geometria hidrologica foi criada")
+	checar(hydrology != null and hydrology.validation_errors.is_empty(),
+		"todos os sockets gerados sao validos",
+		str(hydrology.validation_errors) if hydrology != null else "")
+	checar(hydrology != null and not hydrology.paths.is_empty(), "existe RiverPath continuo")
+	var lakes := 0
+	var ocean_connections := 0
+	if hydrology != null:
+		for tile: WaterTileData in hydrology.tiles.values():
+			lakes += 1 if tile.water_type == WaterTileData.WaterType.LAKE else 0
+			for connection in tile.river_connections:
+				ocean_connections += 1 if connection.kind == RiverConnection.Kind.OCEAN else 0
+	checar(lakes >= 1, "o mundo possui lago com mascara plana", "(%d)" % lakes)
+	checar(ocean_connections >= 1, "o rio possui terminal de oceano", "(%d)" % ocean_connections)
+	var water_mesh := hydrology.get_node_or_null("WaterGeometry") as MeshInstance3D if hydrology != null else null
+	checar(water_mesh != null and water_mesh.mesh != null, "WaterGeometry independente existe")
+	var repeated := 0
+	if hydrology != null:
+		for cell: Vector2i in hydrology.tiles:
+			if terreno.get_node_or_null("planicie_%d_%d" % [cell.x, cell.y]) != null:
+				repeated += 1
+	checar(repeated == 0, "Terrain Grid reserva os tiles da hidrologia", "(%d repetidos)" % repeated)
 
 	print("--- assentar no chao ---")
 	await avancar(90)
