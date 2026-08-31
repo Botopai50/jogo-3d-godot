@@ -84,6 +84,26 @@ func rodar() -> void:
 			props_sem_material += 1
 	checar(props_sem_material == 0, "montanhas e rochas usam o material continuo")
 
+	# O pacote inteiro fica no projeto para uso futuro, mesmo que a ilha use so
+	# uma parte. O catalogo e o indice que torna isso pesquisavel.
+	var catalogo_bruto := FileAccess.open("res://assets/grid/catalogo.json", FileAccess.READ)
+	var catalogo: Array = []
+	if catalogo_bruto != null:
+		var lido: Variant = JSON.parse_string(catalogo_bruto.get_as_text())
+		catalogo_bruto.close()
+		if lido is Array:
+			catalogo = lido
+	print("  catalogo do pacote:  %d modulos" % catalogo.size())
+	checar(catalogo.size() >= 3263, "o pacote inteiro esta indexado no catalogo", "(%d)" % catalogo.size())
+	checar(ilha.modulos_disponiveis() > 150,
+		"a ilha sorteia de um acervo amplo", "(%d modulos no build)" % ilha.modulos_disponiveis())
+
+	var usados := {}
+	for modulo in terreno.get_children():
+		usados[modulo.scene_file_path] = true
+	print("  modulos distintos no mapa: %d de %d" % [usados.size(), ilha.modulos_disponiveis()])
+	checar(usados.size() > 20, "o mapa nao repete poucas pecas", "(%d distintos)" % usados.size())
+
 	print("--- assentar no chao ---")
 	await avancar(90)
 	var altura_parado := personagem.global_position.y

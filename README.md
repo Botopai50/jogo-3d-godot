@@ -59,23 +59,22 @@ navegador.
 
 ```
 .
-├── assets/grid/          # Assets importados do pacote Grid
-│   ├── terrain/          #   28 módulos de terreno 100x100
-│   ├── props/            #   montanhas isoladas e rochas
-│   ├── islets/           #   ilhotas do mar
-│   ├── water/            #   plano de água
-│   └── textures/         #   atlas de paleta 64x64
+├── assets/grid/          # Pacote Grid inteiro: 3.263 módulos
+│   ├── terrain_assets/   #   Terrain, Mountains, Islands, River, Ice, Water
+│   ├── bonus_assets/     #   nuvens
+│   ├── textures/         #   atlas de paleta 64x64
+│   └── catalogo.json     #   índice medido de todos os módulos
 ├── materials/            # Materiais do Godot (atlas do terreno, oceano)
 ├── shaders/              # Shader do oceano
 ├── scenes/
 │   ├── main.tscn         # Cena principal
 │   ├── player/           # Cena do personagem
 │   ├── modules/          # Módulos reutilizáveis do cenário
-│   │   ├── terrain/      #   uma cena por módulo, com colisão assada
+│   │   ├── terrain/      #   173 cenas, uma por módulo que entra no build
 │   │   ├── props/
 │   │   ├── islets/
 │   │   ├── malhas/       #   malhas em binário, compartilhadas pelas cenas
-│   │   └── colisao/      #   formas de colisão em binário
+│   │   └── faixas.json   #   módulos por faixa de relevo, gerado do catálogo
 │   └── world/
 │       ├── island/       # Ilha
 │       └── ocean/        # Oceano
@@ -118,7 +117,8 @@ ser refeitos do zero de forma reprodutível:
 godot --headless --path . --import
 godot --headless --path . --script tools/setup_project.gd    # mapa de entrada e configurações
 godot --headless --path . --script tools/build_materials.gd  # materiais
-godot --headless --path . --script tools/build_modules.gd    # cenas de módulo com colisão
+godot --headless --path . --script tools/build_catalogo.gd   # índice de todos os módulos
+godot --headless --path . --script tools/build_modules.gd    # cenas dos módulos usados
 godot --headless --path . --script tools/build_world.gd      # oceano, ilha e cena principal
 ```
 
@@ -153,6 +153,37 @@ godot --headless --path . --export-release "Web" build/web/index.html
 O workflow `.github/workflows/build-web.yml` faz isso a cada push, roda os testes antes e
 publica o resultado no GitHub Pages.
 
+## O acervo de módulos
+
+O pacote inteiro está no projeto: **3.263 arquivos `.fbx`** em `assets/grid/`, organizados como
+no pacote original (Terrain, Mountains, Islands, River, Ice, Water, nuvens). Todos importados,
+sem nenhum erro, e prontos para uso futuro.
+
+`assets/grid/catalogo.json` é o índice que torna esse acervo pesquisável. Ele é gerado por
+`tools/build_catalogo.gd`, que abre cada módulo e **mede** — não adivinha pelo nome:
+
+| Campo | O que é |
+| --- | --- |
+| `largura`, `profundidade` | pegada real em metros |
+| `y_min`, `y_max` | até onde a peça desce e sobe |
+| `pegada` | 100, 50 ou 25 quando bate com um tamanho de grade |
+| `encaixavel` | as quatro bordas estão na altura zero |
+| `triangulos` | custo da peça |
+| `lod` | se o arquivo é uma cópia de LOD |
+
+Dos 3.263, **1.456 encaixam** em alguma grade. O jogo usa hoje os **173** que encaixam na grade
+de 100 metros, não são cópia de LOD e não afundam abaixo do nível do mar — desses o gerador
+sorteia célula a célula, e um mapa típico mostra ~50 peças distintas.
+
+**O build do navegador leva só esses 173.** Os 317 MB de `.fbx` de origem ficam de fora do
+export (`export_presets.cfg`), então o acervo completo fica no repositório sem pesar no jogo.
+Para usar mais peças depois, basta afrouxar o filtro em `tools/build_modules.gd` — por exemplo
+aceitando pegada de 50 e 25 metros, ou as categorias River e Ice.
+
+Um detalhe do formato: cada arquivo `_LOD.fbx` guarda **três malhas sobrepostas** (LOD0, LOD1 e
+LOD2). O build usa apenas a LOD0; instanciar o arquivo inteiro desenharia geometria repetida no
+mesmo lugar. O Godot cuida do nível de detalhe sozinho.
+
 ## Assets
 
 Os assets vêm do pacote **Low Poly Modular Terrain Pack v1.4**, publicado no release
@@ -163,7 +194,8 @@ deste repositório. Detalhes do que foi importado estão em
 > **Aviso de licença.** O pacote acompanha um `License.pdf` com os termos da Unity Asset
 > Store EULA, que permitem usar os assets dentro de um jogo (inclusive comercialmente), mas
 > **proíbem redistribuir ou repassar os arquivos de asset em si**, mesmo modificados.
-> Publicar o jogo exportado é uso permitido. Já manter os `.fbx` e as texturas versionados
-> num repositório público, e o pacote completo como release público, é redistribuição.
+> Publicar o jogo exportado é uso permitido. Já manter os 3.263 `.fbx` e as texturas
+> versionados num repositório público, e o pacote completo como release público, é
+> redistribuição — e agora é o pacote inteiro, não mais um subconjunto.
 > Se a intenção for ficar dentro da licença, o caminho é tornar o repositório privado (ou
 > remover o release e os arquivos de origem) e deixar público apenas o build.

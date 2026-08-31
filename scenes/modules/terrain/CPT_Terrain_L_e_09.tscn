@@ -1,14 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/CPT_Terrain_L_e_09.res" id="1_7grql"]
-[ext_resource type="Shape3D" path="res://scenes/modules/colisao/CPT_Terrain_L_e_09.res" id="2_8ulc2"]
+[ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/CPT_Terrain_L_e_09.res" id="1_tb1w2"]
 
-[node name="CPT_Terrain_L_e_09" type="StaticBody3D" unique_id=1411750486]
+[node name="CPT_Terrain_L_e_09" type="StaticBody3D" unique_id=272358874]
 
-[node name="Malha" type="MeshInstance3D" parent="." unique_id=1019592442]
+[node name="Malha" type="MeshInstance3D" parent="." unique_id=953122514]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -50.000008, 0, 50)
-mesh = ExtResource("1_7grql")
-
-[node name="Colisao" type="CollisionShape3D" parent="." unique_id=119689272]
-transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -50.000008, 0, 50)
-shape = ExtResource("2_8ulc2")
+mesh = ExtResource("1_tb1w2")

@@ -1,14 +1,9 @@
 [gd_scene format=3]
 
-[ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/CPT_Island_M_a_02.res" id="1_0frbw"]
-[ext_resource type="Shape3D" path="res://scenes/modules/colisao/CPT_Island_M_a_02.res" id="2_45la3"]
+[ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/CPT_Island_M_a_02.res" id="1_cuw2b"]
 
-[node name="CPT_Island_M_a_02" type="StaticBody3D" unique_id=123039086]
+[node name="CPT_Island_M_a_02" type="StaticBody3D" unique_id=90540419]
 
-[node name="Malha" type="MeshInstance3D" parent="." unique_id=1052314819]
+[node name="Malha" type="MeshInstance3D" parent="." unique_id=37319715]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2459145, 0, 5.0561275)
-mesh = ExtResource("1_0frbw")
-
-[node name="Colisao" type="CollisionShape3D" parent="." unique_id=1445409634]
-transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -1.2459145, 0, 5.0561275)
-shape = ExtResource("2_45la3")
+mesh = ExtResource("1_cuw2b")
