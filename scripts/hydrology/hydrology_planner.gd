@@ -12,7 +12,7 @@ var errors := PackedStringArray()
 # Os modulos CPT de rio usam o topo do solo em y = 0 e escavam o canal para
 # baixo. A lamina fica dentro dessa escavacao: acima do fundo, mas abaixo do
 # solo seco, que naturalmente esconde as partes do plano fora do canal.
-const WATER_LEVEL_BELOW_GROUND := 0.05
+const WATER_LEVEL_BELOW_GROUND := 0.001
 
 
 func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
@@ -167,7 +167,9 @@ func _rotated_open_sides(borders: Array, rotation: int) -> Dictionary:
 	var result := {}
 	for side in range(mini(4, borders.size())):
 		if int(borders[side]) != 0:
-			result[posmod(side + rotation, 4)] = true
+			# Em Godot, uma rotacao positiva em Y leva NORTH para WEST.
+			# Os indices crescem no sentido horario, portanto o indice diminui.
+			result[posmod(side - rotation, 4)] = true
 	return result
 
 
