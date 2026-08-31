@@ -2,5 +2,5 @@
 
 [ext_resource type="Script" path="res://scripts/world/gerador_da_ilha.gd" id="1_7atsl"]
 
-[node name="Ilha" type="Node3D" unique_id=447724593]
+[node name="Ilha" type="Node3D" unique_id=306876530]
 script = ExtResource("1_7atsl")

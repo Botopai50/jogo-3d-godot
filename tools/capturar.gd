@@ -23,9 +23,18 @@ func capturar(nome: String) -> void:
 	print("captura %s -> %s" % [nome, error_string(err)])
 
 func rodar() -> void:
+	var destino_absoluto := ProjectSettings.globalize_path(destino)
+	var erro_da_pasta := DirAccess.make_dir_recursive_absolute(destino_absoluto)
+	if erro_da_pasta != OK:
+		push_error("nao foi possivel criar a pasta de capturas: %s" % error_string(erro_da_pasta))
+		quit(1)
+		return
+	destino = destino_absoluto
+
 	var mundo := (load("res://scenes/main.tscn") as PackedScene).instantiate()
 	root.add_child(mundo)
 	var personagem: CharacterBody3D = mundo.get_node("Personagem")
+	var ilha = mundo.get_node("Ilha")
 	var pivo: Node3D = personagem.get_node("PivoDaCamera")
 	await esperar(120)
 
@@ -39,17 +48,23 @@ func rodar() -> void:
 	await esperar(10)
 	await capturar("03_para_o_mar")
 
-	# Vista aerea da ilha inteira, so para conferir o formato e a costa.
+	# Vista superior ortografica da ilha inteira, para conferir o formato e a costa.
 	var camera: Camera3D = pivo.get_node("Camera")
 	camera.top_level = true
-	camera.global_position = Vector3(0.0, 900.0, 950.0)
-	camera.look_at(Vector3(0.0, 0.0, 0.0), Vector3.UP)
+	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+	var raio_da_ilha: float = ilha.raio_em_metros()
+	camera.size = raio_da_ilha * 2.35
+	camera.global_position = Vector3(0.0, raio_da_ilha * 2.0, 0.0)
+	camera.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
 	await esperar(20)
-	await capturar("04_ilha_de_cima")
+	await capturar("ilha_de_cima")
 
-	camera.global_position = Vector3(700.0, 120.0, 700.0)
+	# Vista lateral em perspectiva, com mar, costa e relevo no mesmo quadro.
+	camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+	camera.fov = 55.0
+	camera.global_position = Vector3(0.0, raio_da_ilha * 0.25, raio_da_ilha * 1.75)
 	camera.look_at(Vector3(0.0, 40.0, 0.0), Vector3.UP)
 	await esperar(20)
-	await capturar("05_da_agua")
+	await capturar("ilha_de_lado")
 
 	quit()
