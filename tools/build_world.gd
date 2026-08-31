@@ -131,7 +131,7 @@ func construir_interface() -> CanvasLayer:
 
 	var texto := Label.new()
 	texto.name = "Texto"
-	texto.text = "Clique para jogar\nWASD mover  |  Shift correr  |  Espaco pular  |  Esc liberar o mouse"
+	texto.text = "Clique para jogar\nWASD mover  |  Shift correr/turbo  |  Espaco pular/subir  |  F voar  |  Ctrl descer"
 	texto.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	texto.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	texto.mouse_filter = Control.MOUSE_FILTER_IGNORE

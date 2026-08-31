@@ -71,6 +71,6 @@ mouse_filter = 2
 [node name="Texto" type="Label" parent="Interface/Aviso" unique_id=872873066]
 layout_mode = 2
 text = "Clique para jogar
-WASD mover  |  Shift correr  |  Espaco pular  |  Esc liberar o mouse"
+WASD mover  |  Shift correr/turbo  |  Espaco pular/subir  |  F voar  |  Ctrl descer"
 horizontal_alignment = 1
 vertical_alignment = 1

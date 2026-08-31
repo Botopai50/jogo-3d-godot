@@ -13,6 +13,9 @@ correr e pular no navegador.
 | `W` `A` `S` `D` (ou as setas) | Andar |
 | `Shift` (segurando) | Correr |
 | `Espaço` | Pular (só com os pés no chão) |
+| `F` | Ativar ou desativar o modo de voo |
+| `Espaço` / `Ctrl` durante o voo | Subir / descer |
+| `Shift` durante o voo | Turbo de alta velocidade |
 | Mouse | Olhar |
 | Clique | Capturar o mouse |
 | `Esc` | Liberar o mouse |

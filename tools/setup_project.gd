@@ -25,6 +25,8 @@ func _init() -> void:
 		"move_right": [key_event(KEY_D), key_event(KEY_RIGHT)],
 		"jump": [key_event(KEY_SPACE)],
 		"sprint": [key_event(KEY_SHIFT)],
+		"toggle_flight": [key_event(KEY_F)],
+		"fly_down": [key_event(KEY_CTRL)],
 		"release_mouse": [key_event(KEY_ESCAPE)],
 		"capture_mouse": [mouse_event(MOUSE_BUTTON_LEFT)],
 	}

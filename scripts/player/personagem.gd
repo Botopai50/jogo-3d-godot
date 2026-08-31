@@ -19,6 +19,14 @@ extends CharacterBody3D
 ## Fracao do controle de solo disponivel no ar (0 = nenhum, 1 = total).
 @export_range(0.0, 1.0, 0.05) var controle_no_ar := 0.3
 
+@export_group("Voo")
+## Velocidade do modo de voo ativado com F.
+@export_range(10.0, 200.0, 1.0) var velocidade_de_voo := 45.0
+## Velocidade do voo segurando Shift.
+@export_range(20.0, 400.0, 1.0) var velocidade_de_voo_turbo := 120.0
+## Quao rapido o voo chega a velocidade alvo.
+@export_range(10.0, 400.0, 1.0) var aceleracao_do_voo := 90.0
+
 @export_group("Pulo e gravidade")
 ## Velocidade vertical aplicada no instante do pulo.
 @export_range(1.0, 20.0, 0.1) var forca_do_pulo := 6.5
@@ -49,6 +57,7 @@ extends CharacterBody3D
 var _transformada_inicial: Transform3D
 var _inclinacao := 0.0
 var _instante_da_captura := 0.0
+var _modo_voo := false
 
 
 func _ready() -> void:
@@ -90,6 +99,19 @@ func _unhandled_input(evento: InputEvent) -> void:
 		# um gesto do usuario, entao a recaptura acontece no clique.
 		capturar_mouse()
 		get_viewport().set_input_as_handled()
+	elif evento.is_action_pressed("toggle_flight"):
+		alternar_voo()
+		get_viewport().set_input_as_handled()
+
+
+## Liga ou desliga o voo. Ao desligar, a gravidade volta no quadro seguinte.
+func alternar_voo() -> void:
+	_modo_voo = not _modo_voo
+	velocity = Vector3.ZERO
+
+
+func esta_voando() -> bool:
+	return _modo_voo
 
 
 ## Aplica um movimento de mouse a visao. Horizontal gira o corpo inteiro, para
@@ -114,6 +136,11 @@ func olhar(movimento: Vector2) -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if _modo_voo:
+		_processar_voo(delta)
+		move_and_slide()
+		return
+
 	var no_chao := is_on_floor()
 
 	if no_chao:
@@ -147,6 +174,20 @@ func _physics_process(delta: float) -> void:
 
 	if global_position.y < altura_de_resgate:
 		voltar_ao_inicio()
+
+
+func _processar_voo(delta: float) -> void:
+	var entrada := Input.get_vector("move_left", "move_right", "move_forward", "move_back")
+	var direcao := transform.basis * Vector3(entrada.x, 0.0, entrada.y)
+	if Input.is_action_pressed("jump"):
+		direcao.y += 1.0
+	if Input.is_action_pressed("fly_down"):
+		direcao.y -= 1.0
+	if direcao.length_squared() > 1.0:
+		direcao = direcao.normalized()
+	var turbo := Input.is_action_pressed("sprint")
+	var rapidez := velocidade_de_voo_turbo if turbo else velocidade_de_voo
+	velocity = velocity.move_toward(direcao * rapidez, aceleracao_do_voo * delta)
 
 
 ## Recoloca o personagem no ponto de partida. Rede de seguranca caso ele saia

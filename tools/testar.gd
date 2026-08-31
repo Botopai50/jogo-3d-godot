@@ -12,7 +12,7 @@ func checar(condicao: bool, descricao: String, detalhe: String = "") -> void:
 		falhas += 1
 
 func soltar_tudo() -> void:
-	for a in ["move_forward", "move_back", "move_left", "move_right", "jump", "sprint"]:
+	for a in ["move_forward", "move_back", "move_left", "move_right", "jump", "sprint", "fly_down"]:
 		Input.action_release(a)
 
 func avancar(quadros: int) -> void:
@@ -269,6 +269,27 @@ func rodar() -> void:
 	var depois := personagem.velocity.y
 	print("  vy antes=%.2f depois=%.2f (no ar: %s)" % [subindo, depois, str(not personagem.is_on_floor())])
 	checar(depois <= subindo, "o segundo pulo no ar foi ignorado")
+	await avancar(90)
+
+	print("--- voo ativavel ---")
+	personagem.alternar_voo()
+	checar(personagem.esta_voando(), "F pode ativar o modo de voo")
+	var inicio_do_voo := personagem.global_position
+	Input.action_press("move_forward")
+	Input.action_press("jump")
+	Input.action_press("sprint")
+	await avancar(60)
+	soltar_tudo()
+	var deslocamento_do_voo := personagem.global_position.distance_to(inicio_do_voo)
+	print("  deslocamento turbo em 1s: %.1f m | subida: %.1f m" % [
+		deslocamento_do_voo, personagem.global_position.y - inicio_do_voo.y])
+	checar(deslocamento_do_voo > personagem.velocidade_de_corrida * 2.0,
+		"o voo turbo e muito mais rapido que a corrida")
+	checar(personagem.global_position.y > inicio_do_voo.y + 5.0,
+		"Espaco faz o personagem subir durante o voo")
+	personagem.alternar_voo()
+	checar(not personagem.esta_voando(), "F pode desativar o modo de voo")
+	personagem.voltar_ao_inicio()
 	await avancar(90)
 
 	print("--- limite da ilha ---")
