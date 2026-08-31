@@ -102,6 +102,12 @@ func construir(entrada: Dictionary, destino: String, recentrar: bool) -> bool:
 		# A malha vem embutida no .fbx importado. Salva-la como recurso binario
 		# proprio mantem a cena de modulo pequena e legivel em texto.
 		var copia: ArrayMesh = (malhas[i]["malha"] as Mesh).duplicate(true)
+		# O material que veio do .fbx aponta para o atlas guardado ao lado do
+		# arquivo de origem, e essas texturas ficam de fora do build. Como o
+		# cenario pinta tudo com o shader continuo, o material embutido so
+		# deixaria uma referencia quebrada em tempo de execucao.
+		for si in range(copia.get_surface_count()):
+			copia.surface_set_material(si, null)
 		var caminho_malha := "%s/%s%s.res" % [DIR_MALHAS, nome, sufixo]
 		var err := ResourceSaver.save(copia, caminho_malha)
 		if err != OK:
