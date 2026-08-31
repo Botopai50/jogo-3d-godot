@@ -1429,6 +1429,79 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 		indices.append_array([a, a + 3, a + 1, a, a + 2, a + 3])
 
 
+## Fecha cada CPT_River_End com uma superficie unica. O contorno e medido
+## radialmente a partir do fundo da bacia e para na primeira margem acima do
+## nivel da agua; por isso nunca vira o quadrado inteiro do modulo.
+func _adicionar_bacias_das_terminacoes(vertices: PackedVector3Array,
+		normais: PackedVector3Array, indices: PackedInt32Array) -> void:
+	for item: Dictionary in _pecas_escolhidas:
+		if item["tipo"] != "rio":
+			continue
+		var escolha: Dictionary = item["escolha"]
+		# So a ponta final e uma bacia. A primeira CPT_River_End possui o fundo
+		# aberto na borda e deve funcionar apenas como entrada estreita do curso.
+		if int(escolha["borda_saida"]) >= 0:
+			continue
+		var celula: Vector2i = item["celula"]
+		var centro_da_celula := Vector3(
+			float(celula.x) * tamanho_do_modulo, 0.0,
+			float(celula.y) * tamanho_do_modulo)
+		var fundo := centro_da_celula
+		var altura_do_fundo := INF
+		# Procura o poco, sem se deixar enganar pelas emendas nas bordas.
+		for z in range(-20, 21):
+			for x in range(-20, 21):
+				var candidato := centro_da_celula + Vector3(
+					float(x) * tamanho_do_modulo / 50.0, 0.0,
+					float(z) * tamanho_do_modulo / 50.0)
+				var altura := _altura_do_chao(candidato.x, candidato.z)
+				if altura < altura_do_fundo:
+					altura_do_fundo = altura
+					fundo = candidato
+		# Mede a margem em um nivel conservador, mas desenha a superficie acima
+		# do relevo central. Separar os dois evita que o contorno alcance a borda
+		# quadrada quando a agua visual e elevada.
+		var nivel_do_contorno := altura_do_fundo + lamina_do_lago
+		var nivel_visual := altura_do_fundo + maxf(lamina_do_lago, 6.5)
+		var contorno: Array[Vector3] = []
+		var quantidade := 96
+		for i in range(quantidade):
+			var angulo := TAU * float(i) / float(quantidade)
+			var direcao := Vector3(cos(angulo), 0.0, sin(angulo))
+			var borda := fundo + direcao * 6.0
+			for distancia in range(7, 54):
+				var candidato := fundo + direcao * float(distancia)
+				var celula_do_ponto := Vector2i(
+					roundi(candidato.x / tamanho_do_modulo),
+					roundi(candidato.z / tamanho_do_modulo))
+				if celula_do_ponto != celula:
+					break
+				if _altura_do_chao(candidato.x, candidato.z) >= nivel_do_contorno - 0.08:
+					break
+				borda = candidato
+			borda.y = nivel_visual
+			contorno.append(borda)
+		# Usa somente o contorno externo. Assim ilhas, peninsulas e reentrancias
+		# do relevo nao abrem partes secas no meio do lago.
+		var pontos_2d := PackedVector2Array()
+		for ponto in contorno:
+			pontos_2d.append(Vector2(ponto.x, ponto.z))
+		var casco := Geometry2D.convex_hull(pontos_2d)
+		contorno.clear()
+		for ponto in casco:
+			contorno.append(Vector3(ponto.x, nivel_visual, ponto.y))
+		var inicio := vertices.size()
+		fundo.y = nivel_visual
+		vertices.append(fundo)
+		normais.append(Vector3.UP)
+		for ponto in contorno:
+			vertices.append(ponto)
+			normais.append(Vector3.UP)
+		for i in range(contorno.size()):
+			indices.append_array([
+				inicio, inicio + 1 + i, inicio + 1 + ((i + 1) % contorno.size())])
+
+
 ## Enche a depressao de cada peca ate o nivel da celula.
 ##
 ## A agua deixa de ser uma fita de largura fixa ao longo do leito: ela ocupa
@@ -1475,6 +1548,7 @@ func _montar_laminas(raiz: Node3D) -> void:
 	var normais := PackedVector3Array()
 	var indices := PackedInt32Array()
 	_adicionar_curso_continuo(vertices, normais, indices)
+	_adicionar_bacias_das_terminacoes(vertices, normais, indices)
 	if vertices.is_empty():
 		return
 	var malha := ArrayMesh.new()
