@@ -1223,6 +1223,12 @@ func _melhor_peca(pecas: Array, entrada: int, saida: int, fracao_anterior: float
 			# previsivel.
 			if entrada >= 0 and saida >= 0 and _mesma_direcao(entrada, saida):
 				erro += absf(fracao_de_entrada - fracao_de_saida) * 0.8
+			# Algumas pecas de ponta terminam num poco fundo em vez de so fechar
+			# o canal: CPT_River_End_L_a_01 desce 5,5 m e a variante _R quase 7,2,
+			# contra 2,1 de CPT_River_L_d_01. Encher esse poco ate a soleira faz
+			# a agua escorrer para o campo, e nao encher deixa canal seco. Sai
+			# mais barato preferir a peca rasa.
+			erro += maxf(0.0, -float(peca["y_min"]) - 2.5) * 0.08
 			if erro < melhor_erro:
 				melhor_erro = erro
 				melhor = {
@@ -1255,8 +1261,22 @@ func _montar_agua(raiz: Node3D) -> void:
 		_aplicar_material_continuo(peca)
 		raiz.add_child(peca)
 		_modulo_da_celula[celula] = peca
-	_montar_lamina_do_lago(raiz)
-	_montar_lamina_do_rio(raiz)
+	_montar_laminas(raiz)
+
+
+## Deslocamento, dentro da celula, do ponto em que o canal cruza uma borda.
+func _ponto_no_mundo(borda: int, fracao: float) -> Vector3:
+	if borda < 0:
+		return Vector3.ZERO
+	var p := _ponto_da_borda(borda, fracao) * tamanho_do_modulo
+	return Vector3(p.x, 0.0, p.y)
+
+
+## O ponto cai numa celula que tem peca de rio ou de lago?
+func _tem_peca_de_agua(p: Vector3) -> bool:
+	var celula := Vector2i(
+		roundi(p.x / tamanho_do_modulo), roundi(p.z / tamanho_do_modulo))
+	return _celulas_de_agua.has(celula)
 
 
 func _material_da_agua() -> Material:
@@ -1267,268 +1287,153 @@ func _nivel_do_lago() -> float:
 	return _altura_do_lago - lamina_do_lago
 
 
-## Lamina do lago recortada na linha d agua da propria bacia. A busca le a
-## malha ja montada, entao a agua nunca passa de onde as pecas de bacia estao.
-func _montar_lamina_do_lago(raiz: Node3D) -> void:
-	if not _lago_pronto or _celulas_do_lago.is_empty():
-		return
-	var nivel := _nivel_do_lago()
-	var centro := Vector3(
-		float(_centro_do_lago.x) * tamanho_do_modulo, nivel,
-		float(_centro_do_lago.y) * tamanho_do_modulo)
-	var alcance := float(maxi(comprimento_do_lago, 2)) * tamanho_do_modulo * 0.6
-	var segmentos := 72
-	var raios: Array = []
-	for i in range(segmentos):
-		var angulo := TAU * float(i) / float(segmentos)
-		var direcao := Vector2(cos(angulo), sin(angulo))
-		var passo := alcance / 56.0
-		var r := 0.0
-		var dentro := 0.0
-		while r <= alcance:
-			var celula := Vector2i(
-				roundi((centro.x + direcao.x * r) / tamanho_do_modulo),
-				roundi((centro.z + direcao.y * r) / tamanho_do_modulo))
-			if not _dentro_do_lago(celula):
-				break
-			if _altura_do_chao(centro.x + direcao.x * r, centro.z + direcao.y * r) > nivel:
-				break
-			dentro = r
-			r += passo
-		raios.append(dentro)
-	var maior := 0.0
-	for r in raios:
-		maior = maxf(maior, float(r))
-	if maior <= 0.0:
-		return
-	var vertices := PackedVector3Array()
-	var normais := PackedVector3Array()
-	var indices := PackedInt32Array()
-	vertices.append(Vector3.ZERO)
-	normais.append(Vector3.UP)
-	for i in range(segmentos):
-		var suave: float = (float(raios[(i - 1 + segmentos) % segmentos])
-			+ float(raios[i]) * 2.0 + float(raios[(i + 1) % segmentos])) * 0.25
-		var angulo := TAU * float(i) / float(segmentos)
-		vertices.append(Vector3(cos(angulo) * suave, 0.0, sin(angulo) * suave))
-		normais.append(Vector3.UP)
-	for i in range(segmentos):
-		indices.append_array([0, 1 + i, 1 + (i + 1) % segmentos])
-	var malha := ArrayMesh.new()
-	var arrays: Array = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normais
-	arrays[Mesh.ARRAY_INDEX] = indices
-	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	malha.surface_set_material(0, _material_da_agua())
-	var visual := MeshInstance3D.new()
-	visual.name = "LaminaDoLago"
-	visual.mesh = malha
-	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.position = centro
-	raiz.add_child(visual)
+## Grade de alturas de uma celula, tirada da malha ja deformada.
+##
+## Rasteriza os triangulos uma vez, em vez de procurar o triangulo de cada
+## amostra: com mil amostras por celula a busca ponto a ponto levaria segundos.
+func _grade_de_altura(celula: Vector2i, lado_da_grade: int) -> PackedFloat32Array:
+	var grade := PackedFloat32Array()
+	grade.resize(lado_da_grade * lado_da_grade)
+	grade.fill(INF)
+	if not _modulo_da_celula.has(celula):
+		return grade
+	var modulo: Node3D = _modulo_da_celula[celula]
+	var visual := modulo.get_node_or_null("Malha") as MeshInstance3D
+	if visual == null or visual.mesh == null:
+		return grade
+	var arrays: Array = visual.mesh.surface_get_arrays(0)
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	var para_o_mundo := modulo.transform
+	var canto := Vector2(
+		float(celula.x) * tamanho_do_modulo - tamanho_do_modulo * 0.5,
+		float(celula.y) * tamanho_do_modulo - tamanho_do_modulo * 0.5)
+	var passo := tamanho_do_modulo / float(lado_da_grade)
+
+	for t in range(0, indices.size(), 3):
+		var a: Vector3 = para_o_mundo * vertices[indices[t]]
+		var b: Vector3 = para_o_mundo * vertices[indices[t + 1]]
+		var c: Vector3 = para_o_mundo * vertices[indices[t + 2]]
+		var x0 := clampi(int(floor((minf(a.x, minf(b.x, c.x)) - canto.x) / passo)), 0, lado_da_grade - 1)
+		var x1 := clampi(int(ceil((maxf(a.x, maxf(b.x, c.x)) - canto.x) / passo)), 0, lado_da_grade - 1)
+		var z0 := clampi(int(floor((minf(a.z, minf(b.z, c.z)) - canto.y) / passo)), 0, lado_da_grade - 1)
+		var z1 := clampi(int(ceil((maxf(a.z, maxf(b.z, c.z)) - canto.y) / passo)), 0, lado_da_grade - 1)
+		var denominador := (b.x - a.x) * (c.z - a.z) - (c.x - a.x) * (b.z - a.z)
+		if absf(denominador) < 0.000001:
+			continue
+		for gz in range(z0, z1 + 1):
+			for gx in range(x0, x1 + 1):
+				var px := canto.x + (float(gx) + 0.5) * passo
+				var pz := canto.y + (float(gz) + 0.5) * passo
+				var beta := ((px - a.x) * (c.z - a.z) - (c.x - a.x) * (pz - a.z)) / denominador
+				var gama := ((b.x - a.x) * (pz - a.z) - (px - a.x) * (b.z - a.z)) / denominador
+				if beta < -0.001 or gama < -0.001 or beta + gama > 1.001:
+					continue
+				var altura := a.y * (1.0 - beta - gama) + b.y * beta + c.y * gama
+				var indice := gz * lado_da_grade + gx
+				if altura < grade[indice]:
+					grade[indice] = altura
+	return grade
 
 
-## Fita de agua do rio, presa as celulas que tem peca de canal.
-func _montar_lamina_do_rio(raiz: Node3D) -> void:
-	var trechos: Array = []
+## Nivel da agua em cada celula com peca.
+##
+## O rio e percorrido da foz para a nascente e o nivel nunca desce: uma poca no
+## meio do leito enche e a agua segue, em vez de a lamina mergulhar atras do
+## fundo. O teto por celula mantem a agua dentro da depressao, sem alagar a
+## peca inteira ate a borda.
+func _niveis_da_agua(grades: Dictionary) -> Dictionary:
+	var niveis := {}
+	for celula: Vector2i in _celulas_de_agua.keys():
+		if _celulas_de_agua[celula]["tipo"] == "lago":
+			niveis[celula] = _nivel_do_lago()
+	var corrente := _nivel_do_lago()
 	for item: Dictionary in _pecas_escolhidas:
 		if item["tipo"] != "rio":
 			continue
-		trechos.append(item)
-	if trechos.size() < 2:
-		return
-	var pontos: Array = []
-	# A fita entra um pouco no vertedouro, seguindo a direcao do canal. Mirar no
-	# centro daquela celula faria a agua cortar a bacia na diagonal.
-	var primeiro: Dictionary = trechos[0]
-	var celula_inicial: Vector2i = primeiro["celula"]
-	var centro_inicial := Vector3(
-		celula_inicial.x * tamanho_do_modulo, 0.0, celula_inicial.y * tamanho_do_modulo)
-	var entrada_inicial := centro_inicial + _ponto_no_mundo(
-		int(primeiro["escolha"]["borda_entrada"]), float(primeiro["escolha"]["fracao_entrada"]))
-	var para_o_lago := entrada_inicial - centro_inicial
-	para_o_lago.y = 0.0
-	if para_o_lago.length_squared() > 0.001:
-		pontos.append(entrada_inicial + para_o_lago.normalized() * tamanho_do_modulo * 0.55)
-	for indice in range(trechos.size()):
-		var item: Dictionary = trechos[indice]
 		var celula: Vector2i = item["celula"]
-		var escolha: Dictionary = item["escolha"]
-		var centro := Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
-		var borda_entrada := int(escolha["borda_entrada"])
-		var borda_saida := int(escolha["borda_saida"])
-		var entrada := centro + _ponto_no_mundo(borda_entrada, float(escolha["fracao_entrada"]))
-		pontos.append(entrada)
-		if borda_saida >= 0:
-			var cotovelo := _cotovelo(borda_entrada, float(escolha["fracao_entrada"]),
-				borda_saida, float(escolha["fracao_saida"]))
-			if cotovelo != Vector3.INF:
-				pontos.append(centro + cotovelo)
-			pontos.append(centro + _ponto_no_mundo(borda_saida, float(escolha["fracao_saida"])))
-		else:
-			# Nascente: o canal morre dentro da peca. A fita para perto do
-			# centro; voltar para tras faria a agua dobrar sobre si mesma.
-			pontos.append(centro + (entrada - centro) * 0.5)
-			pontos.append(centro + (entrada - centro) * 0.12)
-			pontos.append(centro - (entrada - centro) * 0.25)
-	_construir_fita(raiz, pontos)
-
-
-## Onde o canal dobra numa curva: o encontro dos dois eixos. Vector3.INF quando
-## as bordas sao paralelas, que e o caso do trecho reto.
-func _cotovelo(borda_a: int, fracao_a: float, borda_b: int, fracao_b: float) -> Vector3:
-	var norte_sul := [0, 2]
-	var a_vertical := norte_sul.has(borda_a)
-	var b_vertical := norte_sul.has(borda_b)
-	if a_vertical == b_vertical:
-		return Vector3.INF
-	var x := fracao_a if a_vertical else fracao_b
-	var z := fracao_b if a_vertical else fracao_a
-	return Vector3(x * tamanho_do_modulo, 0.0, z * tamanho_do_modulo)
-
-
-func _ponto_no_mundo(borda: int, fracao: float) -> Vector3:
-	if borda < 0:
-		return Vector3.ZERO
-	var p := _ponto_da_borda(borda, fracao) * tamanho_do_modulo
-	return Vector3(p.x, 0.0, p.y)
-
-
-## Adensa a linha e encaixa cada ponto no fundo do canal, sem deixar o ponto
-## sair da celula que tem a peca: agua fora do modulo e agua sobre terreno
-## comum, que e exatamente o que nao pode acontecer.
-func _encaixar_no_leito(pontos: Array) -> Array:
-	var densos: Array = []
-	var passo := tamanho_do_modulo * 0.16
-	for i in range(pontos.size() - 1):
-		var a: Vector3 = pontos[i]
-		var b: Vector3 = pontos[i + 1]
-		var partes := maxi(1, int(a.distance_to(b) / passo))
-		for k in range(partes):
-			densos.append(a.lerp(b, float(k) / float(partes)))
-	densos.append(pontos[pontos.size() - 1])
-
-	# Encaixa, suaviza e encaixa de novo. A suavizacao sozinha corta as curvas e
-	# tira a linha do fundo; o segundo encaixe devolve ela ao leito ja sem o
-	# ziguezague que o primeiro deixa.
-	var ajustados := _encaixar_uma_vez(densos)
-	ajustados = _suavizar(ajustados)
-	ajustados = _encaixar_uma_vez(ajustados)
-	ajustados = _suavizar(ajustados)
-	return _encaixar_uma_vez(ajustados)
-
-
-func _encaixar_uma_vez(pontos: Array) -> Array:
-	# Procura por quase toda a largura da celula: o canal do pacote pode
-	# atravessar de um lado ao outro, e uma busca curta nunca o alcanca.
-	var busca := tamanho_do_modulo * 0.45
-	var ajustados: Array = []
-	for i in range(pontos.size()):
-		var p: Vector3 = pontos[i]
-		if i == 0 or i == pontos.size() - 1:
-			ajustados.append(p)
-			continue
-		var frente: Vector3 = pontos[i + 1] - pontos[i - 1]
-		frente.y = 0.0
-		if frente.length_squared() < 0.001:
-			ajustados.append(p)
-			continue
-		# Dentro do lago o ponto mais baixo e o meio da bacia, nao o canal:
-		# encaixar ali faz a fita mergulhar e voltar, em zigue-zague.
-		if not _e_celula_de_rio(p):
-			ajustados.append(p)
-			continue
-		var lado := frente.normalized().cross(Vector3.UP).normalized()
-		var melhor := p
-		var melhor_altura := _altura_do_chao(p.x, p.z)
-		for k in range(-12, 13):
-			var candidato: Vector3 = p + lado * (float(k) / 12.0) * busca
-			if not _e_celula_de_rio(candidato):
+		var grade: PackedFloat32Array = grades[celula]
+		var fundo := INF
+		var alturas: Array = []
+		for h in grade:
+			if h == INF:
 				continue
-			var altura := _altura_do_chao(candidato.x, candidato.z)
-			if altura < melhor_altura:
-				melhor_altura = altura
-				melhor = candidato
-		ajustados.append(melhor)
-	return ajustados
+			fundo = minf(fundo, h)
+			alturas.append(h)
+		if alturas.is_empty():
+			continue
+		alturas.sort()
+		var mediana: float = alturas[alturas.size() / 2]
+		# Teto: sete decimos do caminho entre o fundo e o terreno tipico da
+		# peca. Acima disso a agua sai da depressao e vira um quadrado alagado.
+		var teto := fundo + (mediana - fundo) * 0.7
+		corrente = clampf(maxf(corrente, fundo + lamina_do_rio), fundo, maxf(teto, fundo))
+		niveis[celula] = corrente
+	return niveis
 
 
-func _suavizar(pontos: Array) -> Array:
-	if pontos.size() < 3:
-		return pontos
-	var suaves: Array = [pontos[0]]
-	for i in range(1, pontos.size() - 1):
-		var a: Vector3 = pontos[i - 1]
-		var b: Vector3 = pontos[i]
-		var c: Vector3 = pontos[i + 1]
-		var media := Vector3((a.x + b.x * 2.0 + c.x) * 0.25, 0.0, (a.z + b.z * 2.0 + c.z) * 0.25)
-		suaves.append(media if _tem_peca_de_agua(media) else b)
-	suaves.append(pontos[pontos.size() - 1])
-	return suaves
+## Enche a depressao de cada peca ate o nivel da celula.
+##
+## A agua deixa de ser uma fita de largura fixa ao longo do leito: ela ocupa
+## exatamente o que a peca escavou. Era a fita que deixava a peca de nascente
+## seca, porque o poco dela e largo demais para uma faixa.
+func _montar_laminas(raiz: Node3D) -> void:
+	var lado_da_grade := 26
+	var grades := {}
+	for celula: Vector2i in _celulas_de_agua.keys():
+		grades[celula] = _grade_de_altura(celula, lado_da_grade)
+	var niveis := _niveis_da_agua(grades)
 
+	var por_tipo := {"rio": [], "lago": []}
+	var passo := tamanho_do_modulo / float(lado_da_grade)
+	for celula: Vector2i in _celulas_de_agua.keys():
+		if not niveis.has(celula):
+			continue
+		var nivel: float = niveis[celula]
+		var grade: PackedFloat32Array = grades[celula]
+		var canto := Vector2(
+			float(celula.x) * tamanho_do_modulo - tamanho_do_modulo * 0.5,
+			float(celula.y) * tamanho_do_modulo - tamanho_do_modulo * 0.5)
+		var lista: Array = por_tipo[_celulas_de_agua[celula]["tipo"]]
+		for gz in range(lado_da_grade):
+			for gx in range(lado_da_grade):
+				var altura: float = grade[gz * lado_da_grade + gx]
+				if altura == INF or altura >= nivel - 0.02:
+					continue
+				var px := canto.x + float(gx) * passo
+				var pz := canto.y + float(gz) * passo
+				lista.append(Rect2(px, pz, passo, nivel))
 
-## O ponto cai numa celula que tem peca de canal de rio?
-func _e_celula_de_rio(p: Vector3) -> bool:
-	var celula := Vector2i(
-		roundi(p.x / tamanho_do_modulo), roundi(p.z / tamanho_do_modulo))
-	var plano: Variant = _celulas_de_agua.get(celula)
-	return plano != null and (plano as Dictionary)["tipo"] == "rio"
-
-
-## O ponto cai numa celula que tem peca de rio ou de lago?
-func _tem_peca_de_agua(p: Vector3) -> bool:
-	var celula := Vector2i(
-		roundi(p.x / tamanho_do_modulo), roundi(p.z / tamanho_do_modulo))
-	return _celulas_de_agua.has(celula)
-
-
-func _construir_fita(raiz: Node3D, pontos_brutos: Array) -> void:
-	if pontos_brutos.size() < 2:
-		return
-	var pontos := _encaixar_no_leito(pontos_brutos)
-	if pontos.size() < 2:
-		return
-	var largura := tamanho_do_modulo * largura_da_agua_do_rio * 0.5
-	var vertices := PackedVector3Array()
-	var normais := PackedVector3Array()
-	var indices := PackedInt32Array()
-	for i in range(pontos.size()):
-		var p: Vector3 = pontos[i]
-		var direcao: Vector3
-		if i == 0:
-			direcao = pontos[1] - p
-		elif i == pontos.size() - 1:
-			direcao = p - pontos[i - 1]
-		else:
-			direcao = pontos[i + 1] - pontos[i - 1]
-		direcao.y = 0.0
-		if direcao.length_squared() < 0.001:
-			direcao = Vector3.FORWARD
-		var lado := direcao.normalized().cross(Vector3.UP).normalized() * largura
-		# A lamina fica acima do fundo de verdade, lido da malha ja deformada.
-		var altura := maxf(_altura_do_chao(p.x, p.z) + lamina_do_rio, _nivel_do_lago())
-		vertices.append(Vector3(p.x - lado.x, altura, p.z - lado.z))
-		vertices.append(Vector3(p.x + lado.x, altura, p.z + lado.z))
-		normais.append(Vector3.UP)
-		normais.append(Vector3.UP)
-		if i > 0:
-			var b := (i - 1) * 2
-			indices.append_array([b, b + 2, b + 1, b + 1, b + 2, b + 3])
-	var malha := ArrayMesh.new()
-	var arrays: Array = []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normais
-	arrays[Mesh.ARRAY_INDEX] = indices
-	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	malha.surface_set_material(0, _material_da_agua())
-	var visual := MeshInstance3D.new()
-	visual.name = "LaminaDoRio"
-	visual.mesh = malha
-	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	raiz.add_child(visual)
+	for tipo: String in por_tipo:
+		var quadros: Array = por_tipo[tipo]
+		if quadros.is_empty():
+			continue
+		var vertices := PackedVector3Array()
+		var normais := PackedVector3Array()
+		var indices := PackedInt32Array()
+		for q: Rect2 in quadros:
+			var y: float = q.size.y
+			var b := vertices.size()
+			vertices.append(Vector3(q.position.x, y, q.position.y))
+			vertices.append(Vector3(q.position.x + q.size.x, y, q.position.y))
+			vertices.append(Vector3(q.position.x + q.size.x, y, q.position.y + q.size.x))
+			vertices.append(Vector3(q.position.x, y, q.position.y + q.size.x))
+			for _k in range(4):
+				normais.append(Vector3.UP)
+			indices.append_array([b, b + 2, b + 1, b, b + 3, b + 2])
+		var malha := ArrayMesh.new()
+		var arrays: Array = []
+		arrays.resize(Mesh.ARRAY_MAX)
+		arrays[Mesh.ARRAY_VERTEX] = vertices
+		arrays[Mesh.ARRAY_NORMAL] = normais
+		arrays[Mesh.ARRAY_INDEX] = indices
+		malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+		malha.surface_set_material(0, _material_da_agua())
+		var visual := MeshInstance3D.new()
+		visual.name = "LaminaDoRio" if tipo == "rio" else "LaminaDoLago"
+		visual.mesh = malha
+		visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(visual)
 
 
 func tem_agua() -> bool:

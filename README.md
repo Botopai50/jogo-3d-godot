@@ -101,12 +101,15 @@ encadeia as peças escolhendo a rotação que menos desencontra o leito de uma c
 próxima. No mapa atual a pior emenda fica em 3,9 m, contra os até 82 m de uma escolha
 aleatória.
 
-A lâmina de água acompanha o leito de verdade: a linha é adensada e cada ponto é encaixado no
-ponto mais baixo do canal, procurando de lado por quase toda a largura da célula — o canal do
-pacote pode atravessar de um lado ao outro, e uma busca curta nunca o alcança. O ciclo é
-encaixar, suavizar e encaixar de novo: só suavizar corta as curvas e tira a linha do fundo.
-O encaixe é restrito às células de canal, porque dentro do lago o ponto mais baixo é o meio da
-bacia e a fita mergulharia até lá.
+**A água é a própria depressão inundada, não uma faixa desenhada por cima.** Cada célula com
+peça tem sua malha rasterizada numa grade de altura, e a lâmina cobre exatamente os pontos
+abaixo do nível daquela célula. Uma faixa de largura fixa não servia: a depressão de
+`CPT_River_End` é um poço largo, e a faixa passava ao lado dele deixando a peça seca.
+
+O nível é montado da foz para a nascente e **nunca desce ao subir o rio** — uma poça no meio do
+leito enche e a água segue, em vez de a lâmina mergulhar atrás do fundo. Há um teto por célula,
+a sete décimos do caminho entre o fundo e o terreno típico da peça, para a água ficar dentro da
+depressão em vez de alagar a peça inteira até a borda.
 
 Entre as peças que servem para um trecho reto, algumas atravessam a célula na diagonal
 (`CPT_River_L_c_01` entra a +0,37 e sai a −0,34). O gerador penaliza essa travessia, senão o

@@ -167,16 +167,15 @@ func rodar() -> void:
 	if f_leito != null:
 		marcas.add_child(f_leito)
 
-	# Lamina gerada, em ciano, lida direto da malha que o jogo usa.
-	var lamina := ilha.get_node_or_null("Agua/LaminaDoRio") as MeshInstance3D
-	if lamina != null and lamina.mesh != null:
-		var v: PackedVector3Array = lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
-		var centro_da_lamina: Array = []
-		for i in range(0, v.size() - 1, 2):
-			centro_da_lamina.append(((v[i] + v[i + 1]) * 0.5) + Vector3(0.0, 4.0, 0.0))
-		var f_lamina := fita(centro_da_lamina, lado * 0.035, Color(0.0, 0.9, 1.0))
-		if f_lamina != null:
-			marcas.add_child(f_lamina)
+	# Cobertura de agua por celula: e o que diz se alguma peca ficou seca.
+	var por_celula := {}
+	for nome_da_lamina in ["LaminaDoRio", "LaminaDoLago"]:
+		var lamina := ilha.get_node_or_null("Agua/" + nome_da_lamina) as MeshInstance3D
+		if lamina == null or lamina.mesh == null:
+			continue
+		for p: Vector3 in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+			var c := Vector2i(roundi(p.x / lado), roundi(p.z / lado))
+			por_celula[c] = int(por_celula.get(c, 0)) + 1
 
 	# Cruzamentos de borda, em amarelo: e ali que uma peca entrega o leito para
 	# a proxima, e onde o desalinho do pacote aparece.
@@ -216,26 +215,15 @@ func rodar() -> void:
 	await RenderingServer.frame_post_draw
 	var imagem := root.get_texture().get_image()
 	var err := imagem.save_png("%s/diagnostico_rio.png" % destino)
-	# Distancia entre a lamina gerada e o leito medido, que e o numero que
-	# interessa: quanto a agua se afasta do fundo que as pecas desenham.
-	if lamina != null and lamina.mesh != null:
-		var v2: PackedVector3Array = lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]
-		var linha: Array = []
-		for i in range(0, v2.size() - 1, 2):
-			linha.append((v2[i] + v2[i + 1]) * 0.5)
-		var soma := 0.0
-		var maior_desvio := 0.0
-		for ponto: Vector3 in leito:
-			var perto := INF
-			for q: Vector3 in linha:
-				var d := Vector2(ponto.x - q.x, ponto.z - q.z).length()
-				perto = minf(perto, d)
-			soma += perto
-			maior_desvio = maxf(maior_desvio, perto)
-		if not leito.is_empty():
-			print("desvio da lamina ao leito: media %.1f m | maximo %.1f m" % [
-				soma / float(leito.size()), maior_desvio])
-	print("celulas de agua: %d | pontos de leito medidos: %d" % [
-		ilha._celulas_de_agua.size(), leito.size()])
+	print("%-16s %-6s %s" % ["celula", "tipo", "vertices de agua"])
+	var secas := 0
+	for item: Dictionary in ilha._pecas_escolhidas:
+		var celula: Vector2i = item["celula"]
+		var quantos: int = int(por_celula.get(celula, 0))
+		if quantos == 0:
+			secas += 1
+		print("%-16s %-6s %d%s" % [str(celula), item["tipo"], quantos,
+			"   SECA" if quantos == 0 else ""])
+	print("pecas secas: %d de %d" % [secas, ilha._pecas_escolhidas.size()])
 	print("captura -> ", error_string(err))
 	quit()
