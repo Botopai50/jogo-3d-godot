@@ -141,6 +141,31 @@ func rodar() -> void:
 	checar(sem_colisao == 0, "montanhas e pedras tem colisao", "(%d sem)" % sem_colisao)
 	checar(boiando == 0, "nenhuma peca solta fica acima do chao", "(%d boiando)" % boiando)
 
+	print("--- rio e lago ---")
+	var agua := ilha.get_node_or_null("Agua")
+	checar(ilha.tem_agua(), "o lago foi escavado no relevo")
+	var celulas_de_rio: int = ilha._pecas_escolhidas.size()
+	var pior_desalinho := 0.0
+	for item in ilha._pecas_escolhidas:
+		pior_desalinho = maxf(pior_desalinho, float(item["escolha"].get("desalinho", 0.0)))
+	print("  celulas de rio: %d | pior desalinho do leito: %.3f do lado (%.1f m)" % [
+		celulas_de_rio, pior_desalinho, pior_desalinho * ilha.tamanho_do_modulo])
+	checar(celulas_de_rio >= 2, "o rio tem trecho suficiente", "(%d celulas)" % celulas_de_rio)
+	# O pacote nao padroniza onde o canal cruza a borda, entao encadear pecas
+	# sempre deixa alguma sobra. Acima de um decimo do lado a emenda aparece.
+	checar(pior_desalinho < 0.10, "as pecas de rio encadeiam alinhadas",
+		"(%.1f m)" % (pior_desalinho * ilha.tamanho_do_modulo))
+	checar(agua != null and agua.get_node_or_null("LaminaDoLago") != null, "o lago tem lamina de agua")
+	checar(agua != null and agua.get_node_or_null("LaminaDoRio") != null, "o rio tem lamina de agua")
+
+	# Nenhuma celula pode receber terreno comum e peca de rio ao mesmo tempo.
+	var repetidas := 0
+	for item in ilha._pecas_escolhidas:
+		var c: Vector2i = item["celula"]
+		if terreno.get_node_or_null("planicie_%d_%d" % [c.x, c.y]) != null:
+			repetidas += 1
+	checar(repetidas == 0, "nenhuma celula recebe terreno e rio ao mesmo tempo")
+
 	print("--- assentar no chao ---")
 	await avancar(90)
 	var altura_parado := personagem.global_position.y

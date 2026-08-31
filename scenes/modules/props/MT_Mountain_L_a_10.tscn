@@ -2,8 +2,8 @@
 
 [ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/MT_Mountain_L_a_10.res" id="1_73w1u"]
 
-[node name="MT_Mountain_L_a_10" type="StaticBody3D" unique_id=1817495402]
+[node name="MT_Mountain_L_a_10" type="StaticBody3D" unique_id=228162700]
 
-[node name="Malha" type="MeshInstance3D" parent="." unique_id=492983066]
+[node name="Malha" type="MeshInstance3D" parent="." unique_id=2099235057]
 transform = Transform3D(-1, 0, 0, 0, 1, 0, 0, 0, -1, -0.5975342, 0, 0.8441162)
 mesh = ExtResource("1_73w1u")

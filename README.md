@@ -27,11 +27,13 @@ clicar na tela uma vez para começar a jogar.
   própria e pulo permitido apenas quando está no chão.
 - Câmera controlada pelo mouse: o giro horizontal roda o corpo, o vertical roda só a câmera,
   com a inclinação presa entre -89° e +89°.
-- Ilha de aproximadamente 1,3 km de ponta a ponta, com costa orgânica contínua e um miolo
+- Ilha de cerca de 2,4 km de ponta a ponta, com costa orgânica contínua e um miolo
   modular de 100x100 metros: grandes planícies, colinas esparsas e uma cadeia montanhosa
   curta com alturas variadas.
 - Mar em volta, ilhotas ao largo, montanhas isoladas, afloramentos e pedras espalhadas como
   pontos de referência, e nuvens no céu — tudo sorteado do acervo do pacote.
+- Um rio de montanha, montado com os módulos `CPT_River` e `CPT_River_End`, descendo de uma
+  nascente até um lago escavado no relevo.
 - Colisão em todo o terreno e paredes invisíveis na linha de costa, para o personagem não
   cair para fora do cenário.
 
@@ -87,6 +89,31 @@ navegador.
 ├── export_presets.cfg    # Preset de export Web
 └── .github/workflows/    # Build e publicação no GitHub Pages
 ```
+
+## Rio e lago
+
+O rio usa os módulos `CPT_River` e `CPT_River_End`, que encaixam na mesma grade do terreno com
+o canal afundando 2 metros. O que o pacote **não** padroniza é a posição do canal dentro da
+peça: ele fica fora do centro, varia de peça para peça, e nem as duas pontas da mesma peça
+batem entre si — `CPT_River_L_a_01` abre a −0,41 no norte e a −0,34 no sul. Por isso a
+sequência não pode ser sorteada: o build mede onde o canal cruza cada borda, e o gerador
+encadeia as peças escolhendo a rotação que menos desencontra o leito de uma célula para a
+próxima. No mapa atual a pior emenda fica em 3,9 m, contra os até 82 m de uma escolha
+aleatória.
+
+A lâmina de água acompanha o leito de verdade: a linha é adensada e cada ponto é encaixado no
+ponto mais baixo do canal, procurando de lado. Sem isso a água passa reta pelas curvas e
+some por cima da margem em parte do trecho.
+
+O **lago não usa as peças de bacia do pacote**. Elas são rampas de margem — o terreno desce de
+um canto ao oposto — feitas para contornar uma depressão desenhada à mão; enfileiradas por
+assinatura formam um quadrado com uma ilha no meio. Aqui o lago é escavado no próprio relevo,
+o que dá margem irregular, deixa o rio desaguar nele sem emenda, e faz a lâmina ser recortada
+na linha d'água real em vez de escorrer morro abaixo.
+
+O rio nasce num cume local e desce até o lago. O traçado sobe célula a célula sempre para a
+vizinha mais alta e para quando não há mais subida — aceitar a "menos baixa" faria o rio
+espiralar em volta do pico.
 
 ## Como o cenário é montado
 
@@ -181,6 +208,7 @@ Dos 3.263, **1.456 encaixam** em alguma grade. O build do jogo leva **810 módul
 | Montanhas | 480 | todas as `Mountains` sem LOD | marcos, afloramentos e pedras, separados pela largura medida |
 | Ilhas | 153 | `Islands` S, M e L sem LOD | ilhotas no mar em volta |
 | Nuvens | 4 | `Clouds` | céu |
+| Rio | 41 | `River` CPT de 100 m | leito do rio |
 
 Um mapa típico coloca ~160 peças e mostra **113 módulos distintos**.
 

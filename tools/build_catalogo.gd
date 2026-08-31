@@ -55,9 +55,25 @@ func malhas_uteis(raiz: Node) -> Array:
 	return apenas_lod0 if not apenas_lod0.is_empty() else todas
 
 
+## Classe de profundidade de uma borda. Zero e borda fechada, que encosta em
+## qualquer modulo comum; os outros valores sao aberturas que so encaixam
+## contra outra abertura da mesma profundidade. No pacote sao duas: o canal de
+## rio, com 2 metros, e a bacia de lago, com 6.
+func classe_da_borda(fundo: float) -> int:
+	if fundo > -0.5:
+		return 0
+	if fundo > -4.0:
+		return 2
+	return 6
+
+
 ## Um modulo encaixa na grade quando a pegada bate com um tamanho conhecido e
 ## os quatro lados estao na altura zero. Ai ele pode ficar ao lado de qualquer
 ## outro, em qualquer rotacao de 90 graus, sem abrir fresta.
+##
+## Devolve tambem a assinatura das quatro bordas, na ordem norte, leste, sul e
+## oeste. E ela que permite montar rio e lago: cada peca so pode ficar ao lado
+## de outra cuja borda vizinha tenha a mesma classe.
 func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 	var pegada := 0.0
 	for candidata in PEGADAS:
@@ -65,13 +81,18 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 			pegada = candidata
 			break
 	if pegada == 0.0:
-		return {"pegada": 0.0, "encaixavel": false}
+		return {"pegada": 0.0, "encaixavel": false, "bordas": [], "cruzamentos": []}
 
 	var x0 := caixa.position.x
 	var x1 := caixa.position.x + caixa.size.x
 	var z0 := caixa.position.z
 	var z1 := caixa.position.z + caixa.size.z
 	var limites := [INF, -INF]
+	# fundo de cada borda, na ordem norte (z minimo), leste, sul e oeste
+	var fundos := [INF, INF, INF, INF]
+	var cruzamentos := [0.0, 0.0, 0.0, 0.0]
+	var lado := maxf(caixa.size.x, 0.001)
+	var borda := 0.5
 	for m in malhas:
 		var t: Transform3D = m["transformada"]
 		var malha: Mesh = m["malha"]
@@ -82,10 +103,34 @@ func medir_encaixe(malhas: Array, caixa: AABB) -> Dictionary:
 						or absf(p.z - z0) < EPSILON or absf(p.z - z1) < EPSILON:
 					limites[0] = minf(limites[0], p.y)
 					limites[1] = maxf(limites[1], p.y)
+				var centro_x := x0 + caixa.size.x * 0.5
+				var centro_z := z0 + caixa.size.z * 0.5
+				if absf(p.z - z0) < borda and p.y < fundos[0]:
+					fundos[0] = p.y
+					cruzamentos[0] = (p.x - centro_x) / lado
+				if absf(p.x - x1) < borda and p.y < fundos[1]:
+					fundos[1] = p.y
+					cruzamentos[1] = (p.z - centro_z) / lado
+				if absf(p.z - z1) < borda and p.y < fundos[2]:
+					fundos[2] = p.y
+					cruzamentos[2] = (p.x - centro_x) / lado
+				if absf(p.x - x0) < borda and p.y < fundos[3]:
+					fundos[3] = p.y
+					cruzamentos[3] = (p.z - centro_z) / lado
 	if limites[0] == INF:
-		return {"pegada": pegada, "encaixavel": false}
+		return {"pegada": pegada, "encaixavel": false, "bordas": [], "cruzamentos": []}
+	var bordas: Array = []
+	for i in range(4):
+		bordas.append(classe_da_borda(fundos[i]) if fundos[i] != INF else 0)
+	# Onde a abertura cruza cada borda, em fracao do lado. O pacote nao
+	# padroniza isso: o canal fica fora do centro e varia de peca para peca,
+	# entao encadear duas pecas quaisquer desalinha o leito. Guardar a posicao
+	# permite escolher a sequencia que menos desencontra.
+	var posicoes: Array = []
+	for i in range(4):
+		posicoes.append(snappedf(cruzamentos[i], 0.001))
 	var plano: bool = absf(limites[0]) < 0.05 and absf(limites[1]) < 0.05
-	return {"pegada": pegada, "encaixavel": plano}
+	return {"pegada": pegada, "encaixavel": plano, "bordas": bordas, "cruzamentos": posicoes}
 
 
 func _init() -> void:
@@ -134,6 +179,8 @@ func _init() -> void:
 			"triangulos": triangulos,
 			"pegada": encaixe["pegada"],
 			"encaixavel": encaixe["encaixavel"],
+			"bordas": encaixe["bordas"],
+			"cruzamentos": encaixe["cruzamentos"],
 		})
 		feitos += 1
 		if feitos % 400 == 0:
