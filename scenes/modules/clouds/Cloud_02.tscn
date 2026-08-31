@@ -2,8 +2,8 @@
 
 [ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/Cloud_02.res" id="1_btplb"]
 
-[node name="Cloud_02" type="StaticBody3D" unique_id=1390506806]
+[node name="Cloud_02" type="StaticBody3D" unique_id=1464425405]
 
-[node name="Malha" type="MeshInstance3D" parent="." unique_id=1754098561]
+[node name="Malha" type="MeshInstance3D" parent="." unique_id=791630777]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.572608, 0, 0.2964549)
 mesh = ExtResource("1_btplb")

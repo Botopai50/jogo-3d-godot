@@ -105,11 +105,22 @@ A lâmina de água acompanha o leito de verdade: a linha é adensada e cada pont
 ponto mais baixo do canal, procurando de lado. Sem isso a água passa reta pelas curvas e
 some por cima da margem em parte do trecho.
 
-O **lago não usa as peças de bacia do pacote**. Elas são rampas de margem — o terreno desce de
-um canto ao oposto — feitas para contornar uma depressão desenhada à mão; enfileiradas por
-assinatura formam um quadrado com uma ilha no meio. Aqui o lago é escavado no próprio relevo,
-o que dá margem irregular, deixa o rio desaguar nele sem emenda, e faz a lâmina ser recortada
-na linha d'água real em vez de escorrer morro abaixo.
+O lago também é feito só de peças do pacote. Elas **não são bacias, são rampas de margem**:
+`CPT_River_End_L_d_01` desce de −6 na borda norte inteira até 0 na sul; `_d_05` afunda só no
+canto noroeste; `_d_03` afunda no norte e no leste. Por isso um lago fechado tem exatamente
+**duas células de profundidade** — duas margens opostas se encontram no meio, ambas no fundo,
+e não sobra miolo, para o qual o pacote não tem peça.
+
+O encaixe é resolvido comparando o **perfil inteiro** de cada borda, medido em cinco faixas.
+Comparar só o ponto mais fundo trata uma rampa e um degrau como iguais e deixa fresta. O
+solver testa todas as peças de bacia nas quatro rotações e fica com a que menos abre fresta
+contra os vizinhos: no lago atual ele escolhe sozinho quatro cantos `_d_05`, uma margem reta
+`_d_01` e o vertedouro `_b_02`, com fresta máxima de 3 cm.
+
+**Toda a água fica dentro dos módulos `CPT_River` e `CPT_River_End`.** As lâminas são
+recortadas na linha d'água lida da malha já montada, e o encaixe lateral da fita do rio só
+aceita pontos que caiam numa célula com peça de água. O teste automatizado confere vértice a
+vértice.
 
 O rio nasce num cume local e desce até o lago. O traçado sobe célula a célula sempre para a
 vizinha mais alta e para quando não há mais subida — aceitar a "menos baixa" faria o rio

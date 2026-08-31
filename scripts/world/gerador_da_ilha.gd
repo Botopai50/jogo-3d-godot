@@ -65,11 +65,12 @@ const LARGURA_DE_ROCHA := 30.0
 @export_group("Rio e lago")
 ## Liga o rio e o lago. Eles ocupam celulas que seriam de terreno comum.
 @export var gerar_rio := true
-## Raio do lago, em celulas. A bacia e escavada no relevo, entao a margem sai
-## irregular em vez de acompanhar a grade.
-@export_range(1.0, 6.0, 0.1) var raio_do_lago := 2.4
-## Quanto o fundo do lago afunda abaixo do terreno em volta, em metros.
-@export_range(3.0, 40.0, 0.5) var profundidade_do_lago := 14.0
+## Tamanho do lago em celulas. As margens do pacote sao rampas que descem de
+## uma borda a outra, entao um lago fechado tem exatamente duas celulas de
+## profundidade: as margens opostas se encontram no meio, ambas no fundo.
+@export_range(2, 6, 1) var comprimento_do_lago := 3
+## Quanto a lamina do lago fica abaixo da borda da bacia, em metros.
+@export_range(0.5, 8.0, 0.1) var lamina_do_lago := 4.2
 ## Quantas celulas o rio percorre subindo da margem do lago ate a nascente.
 @export_range(2, 20, 1) var comprimento_do_rio := 7
 ## Quanto a lamina de agua do rio fica acima do fundo do canal, em metros.
@@ -117,6 +118,8 @@ var _modulo_da_celula: Dictionary = {}
 var _celulas_de_agua: Dictionary = {}
 var _caminho_do_rio: Array = []
 var _pecas_escolhidas: Array = []
+var _celulas_do_lago: Array = []
+var _celula_de_saida := Vector2i.ZERO
 var _centro_do_lago := Vector2i.ZERO
 var _altura_do_lago := 0.0
 var _lago_pronto := false
@@ -141,6 +144,7 @@ func gerar() -> void:
 	_celulas_de_agua.clear()
 	_caminho_do_rio.clear()
 	_pecas_escolhidas.clear()
+	_celulas_do_lago.clear()
 	_lago_pronto = false
 	_aleatorio.seed = semente
 	_configurar_ruido_de_altura()
@@ -308,22 +312,16 @@ func _altura_macro_do_terreno(x: float, z: float) -> float:
 	var altura := domo + 5.0 + ruido_amplo + ruido_fino
 	var resultado := maxf(altura * influencia, 0.0)
 	if _lago_pronto:
-		# A bacia e escavada aqui, no relevo compartilhado por todos os modulos.
-		# Como a funcao depende so da posicao, a depressao atravessa as emendas
-		# sem degrau, e a margem fica irregular por causa da propria ondulacao
-		# do terreno em vez de acompanhar a grade.
+		# A bacia e geometria das pecas do pacote; aqui so aplaino o relevo sob
+		# o bloco do lago. Sem isso a borda da bacia sobe alguns metros de uma
+		# ponta a outra e a lamina, que e plana, fica enterrada de um lado e
+		# boiando do outro.
 		var deslocamento := Vector2(
 			x - float(_centro_do_lago.x) * tamanho_do_modulo,
 			z - float(_centro_do_lago.y) * tamanho_do_modulo)
-		var raio_em_metros_do_lago := raio_do_lago * tamanho_do_modulo
-		# Um pouco de ondulacao no raio tira o contorno de circulo perfeito.
-		var angulo := atan2(deslocamento.y, deslocamento.x)
-		var ondulado := raio_em_metros_do_lago * (1.0
-			+ 0.16 * sin(angulo * 3.0 + float(semente % 13))
-			+ 0.09 * sin(angulo * 5.0 - float(semente % 7)))
-		var cava := 1.0 - smoothstep(0.0, maxf(ondulado, 1.0), deslocamento.length())
-		# Fundo mais chato que uma tigela em V: eleva a potencia da borda.
-		resultado -= profundidade_do_lago * pow(cava, 0.65)
+		var meia_extensao := float(maxi(comprimento_do_lago, 2)) * 0.5 * tamanho_do_modulo
+		var peso := 1.0 - smoothstep(meia_extensao * 1.0, meia_extensao * 2.4, deslocamento.length())
+		resultado = lerpf(resultado, _altura_do_lago, peso)
 	return resultado
 
 
@@ -848,24 +846,27 @@ func _montar_ilhotas(raiz: Node3D) -> void:
 # ---------------------------------------------------------------------------
 # Rio e lago
 #
-# O rio e montado com os modulos CPT_River e CPT_River_End do pacote. Eles
-# encaixam na mesma grade do terreno, com o canal afundando 2 metros. O que o
-# pacote nao padroniza e a posicao do canal dentro da peca: ele fica fora do
-# centro e varia de peca para peca, e nem as duas pontas da mesma peca batem
-# entre si. Por isso a sequencia nao pode ser sorteada, e escolhida encadeando
-# as pecas que menos desencontram o leito de uma celula para a proxima.
+# Tudo que e agua fica dentro dos modulos CPT_River e CPT_River_End: o canal do
+# rio e a bacia do lago sao geometria do pacote, e as laminas so aparecem onde
+# essas pecas estao.
 #
-# O lago nao usa as pecas de bacia do pacote: elas sao rampas de margem, com o
-# terreno descendo de um canto ao oposto, feitas para contornar uma depressao
-# desenhada a mao. Enfileiradas por assinatura elas formam um quadrado com
-# ilha no meio. O lago aqui e escavado no proprio relevo, o que da uma margem
-# irregular e deixa o rio desaguar nele sem emenda.
+# As pecas de bacia nao sao tigelas: sao rampas de margem, medidas no build.
+# CPT_River_End_L_d_01 desce de -6 na borda norte inteira ate 0 na sul, com as
+# bordas leste e oeste na mesma rampa; _d_05 afunda so no canto noroeste; _d_03
+# afunda no norte e no leste. Por isso um lago fechado tem duas celulas de
+# profundidade: duas margens opostas se encontram no meio, ambas no fundo, e nao
+# sobra miolo para o qual o pacote nao tem peca.
+#
+# O encaixe e resolvido comparando o perfil inteiro de cada borda, em cinco
+# faixas. Comparar so o ponto mais fundo trata uma rampa e um degrau como iguais
+# e deixa fresta.
 # ---------------------------------------------------------------------------
 
-## Vizinhanca na ordem norte, leste, sul, oeste, a mesma ordem da assinatura.
 const DIRECOES: Array[Vector2i] = [
 	Vector2i(0, -1), Vector2i(1, 0), Vector2i(0, 1), Vector2i(-1, 0)
 ]
+## Perfil de uma borda que encosta em terreno comum: tudo na altura zero.
+const BORDA_DE_TERRA: Array = [0.0, 0.0, 0.0, 0.0, 0.0]
 
 
 func _direcao_para_borda(direcao: Vector2i) -> int:
@@ -875,7 +876,6 @@ func _direcao_para_borda(direcao: Vector2i) -> int:
 	return -1
 
 
-## Ponto onde a abertura cruza a borda, em coordenadas locais de -0.5 a 0.5.
 func _ponto_da_borda(borda: int, fracao: float) -> Vector2:
 	match borda:
 		0: return Vector2(fracao, -0.5)
@@ -884,7 +884,6 @@ func _ponto_da_borda(borda: int, fracao: float) -> Vector2:
 		_: return Vector2(-0.5, fracao)
 
 
-## Gira um ponto local em multiplos de 90 graus, na mesma convencao do Godot.
 func _girar_ponto(p: Vector2, voltas: int) -> Vector2:
 	var atual := p
 	for _i in range(voltas % 4):
@@ -892,36 +891,69 @@ func _girar_ponto(p: Vector2, voltas: int) -> Vector2:
 	return atual
 
 
-## Traduz as aberturas de uma peca para o mundo, ja girada: devolve, para cada
-## borda do mundo, a profundidade e onde a abertura cruza aquela borda.
-func _aberturas_no_mundo(peca: Dictionary, voltas: int) -> Dictionary:
+## Descobre em que borda do mundo um ponto local cai depois de girado, e em que
+## posicao ao longo dela. Deduzir isso por tabela de rotacao e onde se erra o
+## sinal; aqui a propria geometria responde.
+func _borda_no_mundo(p: Vector2) -> Dictionary:
+	if absf(p.y + 0.5) < 0.01:
+		return {"borda": 0, "fracao": p.x}
+	if absf(p.x - 0.5) < 0.01:
+		return {"borda": 1, "fracao": p.y}
+	if absf(p.y - 0.5) < 0.01:
+		return {"borda": 2, "fracao": p.x}
+	if absf(p.x + 0.5) < 0.01:
+		return {"borda": 3, "fracao": p.y}
+	return {"borda": -1, "fracao": 0.0}
+
+
+## Perfis e aberturas de uma peca ja girada, por borda do mundo.
+func _peca_no_mundo(peca: Dictionary, voltas: int) -> Dictionary:
+	var perfis: Array = peca["perfis"]
 	var bordas: Array = peca["bordas"]
 	var cruzamentos: Array = peca["cruzamentos"]
 	var saida := {}
 	for k in range(4):
-		if int(bordas[k]) == 0:
+		var amostras: Array = perfis[k] if perfis.size() == 4 else BORDA_DE_TERRA
+		var destino: Array = [0.0, 0.0, 0.0, 0.0, 0.0]
+		var borda_mundo := -1
+		for j in range(5):
+			var t := (float(j) + 0.5) / 5.0 - 0.5
+			var achado := _borda_no_mundo(_girar_ponto(_ponto_da_borda(k, t), voltas))
+			if int(achado["borda"]) < 0:
+				continue
+			borda_mundo = achado["borda"]
+			var indice := clampi(int((float(achado["fracao"]) + 0.5) * 5.0), 0, 4)
+			destino[indice] = float(amostras[j])
+		if borda_mundo < 0:
 			continue
-		var p := _girar_ponto(_ponto_da_borda(k, float(cruzamentos[k])), voltas)
-		var borda_no_mundo := -1
-		var fracao := 0.0
-		if absf(p.y + 0.5) < 0.01:
-			borda_no_mundo = 0
-			fracao = p.x
-		elif absf(p.x - 0.5) < 0.01:
-			borda_no_mundo = 1
-			fracao = p.y
-		elif absf(p.y - 0.5) < 0.01:
-			borda_no_mundo = 2
-			fracao = p.x
-		elif absf(p.x + 0.5) < 0.01:
-			borda_no_mundo = 3
-			fracao = p.y
-		if borda_no_mundo >= 0:
-			saida[borda_no_mundo] = {"classe": int(bordas[k]), "fracao": fracao}
+		var cruzamento := _borda_no_mundo(
+			_girar_ponto(_ponto_da_borda(k, float(cruzamentos[k])), voltas))
+		saida[borda_mundo] = {
+			"perfil": destino,
+			"classe": int(bordas[k]),
+			"fracao": float(cruzamento["fracao"]),
+		}
 	return saida
 
 
-## Altura do terreno no centro de uma celula, sem a escavacao do lago.
+func _erro_entre_perfis(a: Array, b: Array) -> float:
+	var soma := 0.0
+	for i in range(5):
+		soma += absf(float(a[i]) - float(b[i]))
+	return soma
+
+
+func _acervo_de_rio() -> Array:
+	var arquivo := FileAccess.open(ACERVO_GERADO, FileAccess.READ)
+	if arquivo == null:
+		return []
+	var dados: Variant = JSON.parse_string(arquivo.get_as_text())
+	arquivo.close()
+	if not dados is Dictionary:
+		return []
+	return (dados as Dictionary).get("rio", [])
+
+
 func _altura_bruta_da_celula(celula: Vector2i) -> float:
 	var lembrete := _lago_pronto
 	_lago_pronto = false
@@ -931,25 +963,23 @@ func _altura_bruta_da_celula(celula: Vector2i) -> float:
 	return altura
 
 
-## Escolhe onde cai o lago: meia encosta baixa, com terreno manso em volta e
-## longe da costa, para a bacia caber inteira em terra.
-func _escolher_centro_do_lago() -> Variant:
+func _dentro_do_lago(celula: Vector2i) -> bool:
+	return _celulas_do_lago.has(celula)
+
+
+## Escolhe onde cai o lago: meia encosta, com o bloco inteiro em terra e longe
+## da borda da ilha.
+func _escolher_canto_do_lago(largura: int, altura: int) -> Variant:
 	var candidatos: Array = []
-	# Folga circular do tamanho da bacia, com uma celula de margem. Um quadrado
-	# de folga nao caberia na ilha e nao sobraria candidata nenhuma.
-	var folga := raio_do_lago + 0.8
-	var alcance := int(ceil(folga))
 	for celula: Vector2i in _celulas.keys():
 		var t: float = _celulas[celula]
-		if t < 0.32 or t > 0.58 or celula == _celula_de_nascimento:
+		if t < 0.30 or t > 0.62 or celula == _celula_de_nascimento:
 			continue
 		var serve := true
-		for dz in range(-alcance, alcance + 1):
-			for dx in range(-alcance, alcance + 1):
-				if Vector2(dx, dz).length() > folga:
-					continue
+		for dz in range(-1, altura + 1):
+			for dx in range(-1, largura + 1):
 				var c := celula + Vector2i(dx, dz)
-				if not _celulas.has(c):
+				if not _celulas.has(c) or _e_borda(c.x, c.y):
 					serve = false
 					break
 			if not serve:
@@ -974,9 +1004,135 @@ func _escolher_centro_do_lago() -> Variant:
 	return candidatos[0]["celula"]
 
 
-## Traca o rio subindo da margem do lago ate uma nascente. A subida tem que
-## ser real a cada passo, senao o tracado aceita a vizinha menos baixa e sai
-## espiralando em volta do cume.
+## Resolve o bloco do lago peca por peca: para cada celula testa todas as pecas
+## de bacia nas quatro rotacoes e fica com a que menos abre fresta contra os
+## vizinhos ja decididos e contra o terreno em volta.
+func _resolver_lago(pecas: Array, celula_de_saida: Vector2i, direcao_de_saida: Vector2i) -> Dictionary:
+	var bacias: Array = []
+	for peca: Dictionary in pecas:
+		var bordas: Array = peca["bordas"]
+		if bordas.size() != 4:
+			continue
+		var tem_bacia := false
+		for classe in bordas:
+			if int(classe) == 6:
+				tem_bacia = true
+				break
+		if tem_bacia:
+			bacias.append(peca)
+
+	var decididas := {}
+	# Duas passadas: na primeira metade das celulas ainda faltam vizinhos, e a
+	# segunda passada refaz a escolha ja com o bloco inteiro no lugar.
+	for _passada in range(2):
+		for celula: Vector2i in _celulas_do_lago:
+			var melhor := {}
+			var melhor_erro := INF
+			for peca: Dictionary in bacias:
+				for voltas in range(4):
+					var mundo := _peca_no_mundo(peca, voltas)
+					var erro := 0.0
+					var valida := true
+					for i in range(4):
+						var vizinha: Vector2i = celula + DIRECOES[i]
+						var minha: Dictionary = mundo.get(i, {"perfil": BORDA_DE_TERRA, "classe": 0})
+						var meu_perfil: Array = minha["perfil"]
+						if celula == celula_de_saida and DIRECOES[i] == direcao_de_saida:
+							# Exatamente aqui o lago tem que verter para o rio.
+							if int(minha["classe"]) != 2:
+								valida = false
+								break
+							continue
+						if _dentro_do_lago(vizinha):
+							if not decididas.has(vizinha):
+								continue
+							var outra: Dictionary = decididas[vizinha]
+							var perfil_vizinho: Array = (outra["mundo"] as Dictionary).get(
+								(i + 2) % 4, {"perfil": BORDA_DE_TERRA})["perfil"]
+							erro += _erro_entre_perfis(meu_perfil, perfil_vizinho)
+						else:
+							erro += _erro_entre_perfis(meu_perfil, BORDA_DE_TERRA)
+					if not valida:
+						continue
+					if erro < melhor_erro:
+						melhor_erro = erro
+						melhor = {"nome": peca["nome"], "voltas": voltas, "mundo": mundo, "erro": erro}
+			if not melhor.is_empty():
+				decididas[celula] = melhor
+	return decididas
+
+
+func _planejar_agua() -> void:
+	var pecas := _acervo_de_rio()
+	if pecas.is_empty():
+		return
+	var largura := comprimento_do_lago
+	var altura := 2
+	var canto: Variant = _escolher_canto_do_lago(largura, altura)
+	if canto == null:
+		return
+	var origem: Vector2i = canto
+	_celulas_do_lago.clear()
+	for dz in range(altura):
+		for dx in range(largura):
+			_celulas_do_lago.append(origem + Vector2i(dx, dz))
+	_centro_do_lago = origem + Vector2i(largura / 2, 0)
+
+	# Media das alturas do bloco: e nela que o lago fica aplainado, para a
+	# lamina nao ficar enterrada de um lado e boiando do outro.
+	var soma := 0.0
+	for celula: Vector2i in _celulas_do_lago:
+		soma += _altura_bruta_da_celula(celula)
+	_altura_do_lago = soma / float(_celulas_do_lago.size())
+	_lago_pronto = true
+
+	# A saida fica na celula do meio da margem mais alta: e de la que o rio desce.
+	var celula_de_saida: Vector2i = _celulas_do_lago[0]
+	var direcao_de_saida := Vector2i(0, -1)
+	var melhor_altura := -INF
+	for celula: Vector2i in _celulas_do_lago:
+		for direcao: Vector2i in DIRECOES:
+			var fora: Vector2i = celula + direcao
+			if _dentro_do_lago(fora) or not _celulas.has(fora) or _e_borda(fora.x, fora.y):
+				continue
+			var altura_fora := _altura_bruta_da_celula(fora)
+			if altura_fora > melhor_altura:
+				melhor_altura = altura_fora
+				celula_de_saida = celula
+				direcao_de_saida = direcao
+
+	_celula_de_saida = celula_de_saida
+	var decididas := _resolver_lago(pecas, celula_de_saida, direcao_de_saida)
+	for celula: Vector2i in _celulas_do_lago:
+		if not decididas.has(celula):
+			continue
+		_pecas_escolhidas.append({"celula": celula, "tipo": "lago", "escolha": decididas[celula]})
+		_celulas_de_agua[celula] = {"tipo": "lago"}
+
+	_caminho_do_rio = _tracar_rio(celula_de_saida + direcao_de_saida, direcao_de_saida)
+	if _caminho_do_rio.is_empty():
+		return
+	var fracao_anterior := 0.0
+	var tem_anterior := false
+	for indice in range(_caminho_do_rio.size()):
+		var celula: Vector2i = _caminho_do_rio[indice]
+		var anterior: Vector2i = _caminho_do_rio[indice - 1] if indice > 0 else celula_de_saida
+		var entrada := _direcao_para_borda(anterior - celula)
+		var saida := -1
+		if indice + 1 < _caminho_do_rio.size():
+			saida = _direcao_para_borda(_caminho_do_rio[indice + 1] - celula)
+		var escolha := _melhor_peca(pecas, entrada, saida, fracao_anterior, tem_anterior)
+		if escolha.is_empty():
+			break
+		escolha["borda_entrada"] = entrada
+		escolha["borda_saida"] = saida
+		_pecas_escolhidas.append({"celula": celula, "tipo": "rio", "escolha": escolha})
+		_celulas_de_agua[celula] = {"tipo": "rio"}
+		fracao_anterior = float(escolha["fracao_saida"])
+		tem_anterior = saida >= 0
+
+
+## Traca o rio subindo da margem do lago ate uma nascente.
 func _tracar_rio(inicio: Vector2i, primeira_direcao: Vector2i) -> Array:
 	var caminho: Array = []
 	var atual := inicio
@@ -1002,13 +1158,10 @@ func _tracar_rio(inicio: Vector2i, primeira_direcao: Vector2i) -> Array:
 				continue
 			var altura := _altura_bruta_da_celula(vizinha)
 			# Um degrau para baixo de meio metro passa: a ondulacao fina do
-			# terreno cria pocas que interromperiam a subida sem motivo. O que
-			# nao pode e aceitar queda de verdade, senao o tracado sai
-			# espiralando em volta do cume.
+			# terreno cria pocas que interromperiam a subida sem motivo. Queda
+			# de verdade nao, senao o tracado espirala em volta do cume.
 			if altura < altura_atual - 0.6:
 				continue
-			# Entre as que sobem, um empurrao para seguir reto deixa o tracado
-			# menos serrilhado.
 			var nota := altura + (0.75 if direcao == direcao_anterior else 0.0)
 			if nota > melhor_nota:
 				melhor_nota = nota
@@ -1021,78 +1174,8 @@ func _tracar_rio(inicio: Vector2i, primeira_direcao: Vector2i) -> Array:
 	return caminho
 
 
-func _dentro_do_lago(celula: Vector2i) -> bool:
-	if not _lago_pronto:
-		return false
-	return Vector2(celula - _centro_do_lago).length() <= raio_do_lago + 0.2
-
-
-func _acervo_de_rio() -> Array:
-	var arquivo := FileAccess.open(ACERVO_GERADO, FileAccess.READ)
-	if arquivo == null:
-		return []
-	var dados: Variant = JSON.parse_string(arquivo.get_as_text())
-	arquivo.close()
-	if not dados is Dictionary:
-		return []
-	return (dados as Dictionary).get("rio", [])
-
-
-func _planejar_agua() -> void:
-	var pecas := _acervo_de_rio()
-	if pecas.is_empty():
-		return
-	var centro: Variant = _escolher_centro_do_lago()
-	if centro == null:
-		return
-	_centro_do_lago = centro
-	_altura_do_lago = _altura_bruta_da_celula(_centro_do_lago)
-	_lago_pronto = true
-
-	# O rio entra pelo lado mais alto: e de la que a agua desceria.
-	# A primeira celula do rio encosta na margem: um passo alem do raio da bacia.
-	var passo := int(ceil(raio_do_lago))
-	var melhor_direcao := DIRECOES[0]
-	var melhor_altura := -INF
-	for direcao: Vector2i in DIRECOES:
-		var fora: Vector2i = _centro_do_lago + direcao * passo
-		if not _celulas.has(fora):
-			continue
-		var altura := _altura_bruta_da_celula(fora)
-		if altura > melhor_altura:
-			melhor_altura = altura
-			melhor_direcao = direcao
-	_caminho_do_rio = _tracar_rio(_centro_do_lago + melhor_direcao * passo, melhor_direcao)
-	if _caminho_do_rio.is_empty():
-		return
-
-	# Encadeia as pecas: a primeira celula recebe a agua do lado do lago, a
-	# ultima e a nascente e fica fechada.
-	var escolhas: Array = []
-	var fracao_anterior := 0.0
-	var tem_anterior := false
-	for indice in range(_caminho_do_rio.size()):
-		var celula: Vector2i = _caminho_do_rio[indice]
-		var entrada := _direcao_para_borda(
-			(_caminho_do_rio[indice - 1] - celula) if indice > 0
-			else (_centro_do_lago + melhor_direcao * (passo - 1) - celula).sign())
-		var saida := -1
-		if indice + 1 < _caminho_do_rio.size():
-			saida = _direcao_para_borda(_caminho_do_rio[indice + 1] - celula)
-		var escolha := _melhor_peca(pecas, entrada, saida, fracao_anterior, tem_anterior)
-		if escolha.is_empty():
-			break
-		escolha["borda_entrada"] = entrada
-		escolha["borda_saida"] = saida
-		escolhas.append({"celula": celula, "escolha": escolha})
-		_celulas_de_agua[celula] = {"tipo": "rio"}
-		fracao_anterior = float(escolha["fracao_saida"])
-		tem_anterior = saida >= 0
-	_pecas_escolhidas = escolhas
-
-
-## Procura a peca e a rotacao que abrem exatamente nas bordas pedidas e que
-## menos desalinham o leito em relacao a celula anterior.
+## Peca de canal que abre exatamente nas bordas pedidas e que menos desalinha o
+## leito em relacao a celula anterior.
 func _melhor_peca(pecas: Array, entrada: int, saida: int, fracao_anterior: float,
 		tem_anterior: bool) -> Dictionary:
 	var alvo := {}
@@ -1114,26 +1197,30 @@ func _melhor_peca(pecas: Array, entrada: int, saida: int, fracao_anterior: float
 		if not so_canal:
 			continue
 		for voltas in range(4):
-			var aberturas := _aberturas_no_mundo(peca, voltas)
-			if aberturas.size() != alvo.size():
+			var mundo := _peca_no_mundo(peca, voltas)
+			var abertas := {}
+			for borda: int in mundo:
+				if int((mundo[borda] as Dictionary)["classe"]) != 0:
+					abertas[borda] = true
+			if abertas.size() != alvo.size():
 				continue
 			var combina := true
 			for borda: int in alvo:
-				if not aberturas.has(borda):
+				if not abertas.has(borda):
 					combina = false
 					break
 			if not combina:
 				continue
 			var erro := 0.0
 			if tem_anterior and entrada >= 0:
-				erro = absf(float((aberturas[entrada] as Dictionary)["fracao"]) - fracao_anterior)
+				erro = absf(float((mundo[entrada] as Dictionary)["fracao"]) - fracao_anterior)
 			if erro < melhor_erro:
 				melhor_erro = erro
 				melhor = {
 					"nome": peca["nome"],
 					"voltas": voltas,
-					"fracao_entrada": float((aberturas[entrada] as Dictionary)["fracao"]) if entrada >= 0 else 0.0,
-					"fracao_saida": float((aberturas[saida] as Dictionary)["fracao"]) if saida >= 0 else 0.0,
+					"fracao_entrada": float((mundo[entrada] as Dictionary)["fracao"]) if entrada >= 0 else 0.0,
+					"fracao_saida": float((mundo[saida] as Dictionary)["fracao"]) if saida >= 0 else 0.0,
 					"desalinho": melhor_erro,
 				}
 	return melhor
@@ -1145,11 +1232,11 @@ func _montar_agua(raiz: Node3D) -> void:
 		var celula: Vector2i = item["celula"]
 		var escolha: Dictionary = item["escolha"]
 		var peca := _cena(PASTA_RIO, escolha["nome"]).instantiate() as Node3D
-		peca.name = "rio_%d_%d" % [celula.x, celula.y]
+		peca.name = "%s_%d_%d" % [item["tipo"], celula.x, celula.y]
 		peca.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
 		peca.rotation.y = float(escolha["voltas"]) * PI * 0.5
-		# Escala vertical igual a horizontal: o canal precisa manter a propria
-		# proporcao, senao vira um risco raso e largo no chao.
+		# Escala vertical igual a horizontal: canal e bacia precisam manter a
+		# propria proporcao, senao viram riscos rasos no chao.
 		_deformar_modulo(peca, escala_uniforme)
 		_aplicar_material_continuo(peca)
 		raiz.add_child(peca)
@@ -1163,70 +1250,48 @@ func _material_da_agua() -> Material:
 
 
 func _nivel_do_lago() -> float:
-	return _altura_do_lago - profundidade_do_lago * 0.45
+	return _altura_do_lago - lamina_do_lago
 
 
-## Onde fica a margem numa direcao: o raio em que o terreno escavado cruza o
-## nivel da agua. Procura de fora para dentro e refina, para pegar a borda da
-## bacia e nao uma poca qualquer no caminho.
-func _raio_da_margem(angulo: float, nivel: float) -> float:
-	var origem := Vector2(
-		float(_centro_do_lago.x) * tamanho_do_modulo,
-		float(_centro_do_lago.y) * tamanho_do_modulo)
-	var direcao := Vector2(cos(angulo), sin(angulo))
-	var limite := raio_do_lago * 1.5 * tamanho_do_modulo
-	var passo := limite / 64.0
-	var dentro := 0.0
-	var fora := limite
-	# De dentro para fora: a margem e o primeiro ponto em que o terreno sobe
-	# acima do nivel. Varrer ao contrario encontraria a encosta da costa, que
-	# tambem fica abaixo do nivel do lago, e a lamina escorreria ate o mar.
-	var r := 0.0
-	var achou := false
-	while r <= limite:
-		var p := origem + direcao * r
-		if _altura_macro_do_terreno(p.x, p.y) > nivel:
-			fora = r
-			achou = true
-			break
-		dentro = r
-		r += passo
-	if not achou:
-		return dentro
-	for _i in range(8):
-		var meio := (dentro + fora) * 0.5
-		var q := origem + direcao * meio
-		if _altura_macro_do_terreno(q.x, q.y) <= nivel:
-			dentro = meio
-		else:
-			fora = meio
-	return dentro
-
-
-## Lamina do lago recortada na propria linha d agua. Um plano quadrado
-## escorreria morro abaixo por toda parte em que o terreno fica mais baixo que
-## o nivel do lago, e a costa inteira e mais baixa que ele.
+## Lamina do lago recortada na linha d agua da propria bacia. A busca le a
+## malha ja montada, entao a agua nunca passa de onde as pecas de bacia estao.
 func _montar_lamina_do_lago(raiz: Node3D) -> void:
-	if not _lago_pronto:
+	if not _lago_pronto or _celulas_do_lago.is_empty():
 		return
 	var nivel := _nivel_do_lago()
-	var segmentos := 72
-	var origem := Vector3(
+	var centro := Vector3(
 		float(_centro_do_lago.x) * tamanho_do_modulo, nivel,
 		float(_centro_do_lago.y) * tamanho_do_modulo)
+	var alcance := float(maxi(comprimento_do_lago, 2)) * tamanho_do_modulo * 0.6
+	var segmentos := 72
+	var raios: Array = []
+	for i in range(segmentos):
+		var angulo := TAU * float(i) / float(segmentos)
+		var direcao := Vector2(cos(angulo), sin(angulo))
+		var passo := alcance / 56.0
+		var r := 0.0
+		var dentro := 0.0
+		while r <= alcance:
+			var celula := Vector2i(
+				roundi((centro.x + direcao.x * r) / tamanho_do_modulo),
+				roundi((centro.z + direcao.y * r) / tamanho_do_modulo))
+			if not _dentro_do_lago(celula):
+				break
+			if _altura_do_chao(centro.x + direcao.x * r, centro.z + direcao.y * r) > nivel:
+				break
+			dentro = r
+			r += passo
+		raios.append(dentro)
+	var maior := 0.0
+	for r in raios:
+		maior = maxf(maior, float(r))
+	if maior <= 0.0:
+		return
 	var vertices := PackedVector3Array()
 	var normais := PackedVector3Array()
 	var indices := PackedInt32Array()
 	vertices.append(Vector3.ZERO)
 	normais.append(Vector3.UP)
-	var raios: Array = []
-	for i in range(segmentos):
-		var angulo := TAU * float(i) / float(segmentos)
-		raios.append(_raio_da_margem(angulo, nivel))
-	if raios.max() <= 0.0:
-		return
-	# Uma media com os vizinhos tira o serrilhado da amostragem sem endireitar
-	# o contorno.
 	for i in range(segmentos):
 		var suave: float = (float(raios[(i - 1 + segmentos) % segmentos])
 			+ float(raios[i]) * 2.0 + float(raios[(i + 1) % segmentos])) * 0.25
@@ -1247,49 +1312,48 @@ func _montar_lamina_do_lago(raiz: Node3D) -> void:
 	visual.name = "LaminaDoLago"
 	visual.mesh = malha
 	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	visual.position = origem
+	visual.position = centro
 	raiz.add_child(visual)
 
 
-## Fita de agua seguindo o leito de verdade, pelos pontos onde o canal cruza a
-## borda de cada celula. Acompanhar o centro da celula deixaria a agua em cima
-## da margem, porque o canal do pacote e fora de centro.
+## Fita de agua do rio, presa as celulas que tem peca de canal.
 func _montar_lamina_do_rio(raiz: Node3D) -> void:
-	if _pecas_escolhidas.size() < 2:
+	var trechos: Array = []
+	for item: Dictionary in _pecas_escolhidas:
+		if item["tipo"] != "rio":
+			continue
+		trechos.append(item)
+	if trechos.size() < 2:
 		return
 	var pontos: Array = []
-	for indice in range(_pecas_escolhidas.size()):
-		var item: Dictionary = _pecas_escolhidas[indice]
+	# A fita comeca no vertedouro, que e a peca de lago com canal: assim a agua
+	# do rio encosta na do lago sem sobrar trecho seco, e continua dentro de um
+	# modulo do pacote.
+	pontos.append(Vector3(
+		float(_celula_de_saida.x) * tamanho_do_modulo, 0.0,
+		float(_celula_de_saida.y) * tamanho_do_modulo))
+	for indice in range(trechos.size()):
+		var item: Dictionary = trechos[indice]
 		var celula: Vector2i = item["celula"]
 		var escolha: Dictionary = item["escolha"]
 		var centro := Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
 		var borda_entrada := int(escolha["borda_entrada"])
 		var borda_saida := int(escolha["borda_saida"])
 		var entrada := centro + _ponto_no_mundo(borda_entrada, float(escolha["fracao_entrada"]))
-		if indice == 0:
-			# A ponta de baixo desagua no lago: a fita comeca um pouco alem da
-			# borda, para a agua do rio encostar na do lago sem emenda.
-			var para_fora := (entrada - centro)
-			para_fora.y = 0.0
-			pontos.append(entrada + para_fora.normalized() * tamanho_do_modulo * 0.3)
 		pontos.append(entrada)
 		if borda_saida >= 0:
-			var saida := centro + _ponto_no_mundo(borda_saida, float(escolha["fracao_saida"]))
-			# Numa curva o canal faz cotovelo. Ligar entrada e saida em linha
-			# reta corta o canto e joga a agua para fora do leito.
 			var cotovelo := _cotovelo(borda_entrada, float(escolha["fracao_entrada"]),
 				borda_saida, float(escolha["fracao_saida"]))
 			if cotovelo != Vector3.INF:
 				pontos.append(centro + cotovelo)
-			pontos.append(saida)
+			pontos.append(centro + _ponto_no_mundo(borda_saida, float(escolha["fracao_saida"])))
 		else:
-			# Nascente: o canal morre no meio da peca.
 			pontos.append(centro + (entrada - centro) * 0.3)
 	_construir_fita(raiz, pontos)
 
 
-## Onde o canal dobra numa curva: o encontro dos dois eixos do canal. Devolve
-## Vector3.INF quando as duas bordas sao paralelas, que e o caso do trecho reto.
+## Onde o canal dobra numa curva: o encontro dos dois eixos. Vector3.INF quando
+## as bordas sao paralelas, que e o caso do trecho reto.
 func _cotovelo(borda_a: int, fracao_a: float, borda_b: int, fracao_b: float) -> Vector3:
 	var norte_sul := [0, 2]
 	var a_vertical := norte_sul.has(borda_a)
@@ -1301,8 +1365,6 @@ func _cotovelo(borda_a: int, fracao_a: float, borda_b: int, fracao_b: float) -> 
 	return Vector3(x * tamanho_do_modulo, 0.0, z * tamanho_do_modulo)
 
 
-## Converte um cruzamento de borda em deslocamento dentro da celula. Borda -1
-## devolve o centro.
 func _ponto_no_mundo(borda: int, fracao: float) -> Vector3:
 	if borda < 0:
 		return Vector3.ZERO
@@ -1310,9 +1372,9 @@ func _ponto_no_mundo(borda: int, fracao: float) -> Vector3:
 	return Vector3(p.x, 0.0, p.y)
 
 
-## Adensa a linha e encaixa cada ponto no fundo do canal, procurando de lado
-## pelo ponto mais baixo. O leito do pacote serpenteia dentro da celula, e uma
-## linha reta entre as bordas passaria por cima da margem em parte do trecho.
+## Adensa a linha e encaixa cada ponto no fundo do canal, sem deixar o ponto
+## sair da celula que tem a peca: agua fora do modulo e agua sobre terreno
+## comum, que e exatamente o que nao pode acontecer.
 func _encaixar_no_leito(pontos: Array) -> Array:
 	var densos: Array = []
 	var passo := tamanho_do_modulo * 0.16
@@ -1341,24 +1403,32 @@ func _encaixar_no_leito(pontos: Array) -> Array:
 		var melhor_altura := _altura_do_chao(p.x, p.z)
 		for k in range(-6, 7):
 			var candidato: Vector3 = p + lado * (float(k) / 6.0) * busca
+			if not _tem_peca_de_agua(candidato):
+				continue
 			var altura := _altura_do_chao(candidato.x, candidato.z)
 			if altura < melhor_altura:
 				melhor_altura = altura
 				melhor = candidato
 		ajustados.append(melhor)
 
-	# Duas passadas de suavizacao tiram o ziguezague que o encaixe lateral deixa
-	# quando dois pontos vizinhos escolhem lados opostos do leito.
 	for _passada in range(2):
 		var suaves: Array = [ajustados[0]]
 		for i in range(1, ajustados.size() - 1):
 			var a: Vector3 = ajustados[i - 1]
 			var b: Vector3 = ajustados[i]
 			var c: Vector3 = ajustados[i + 1]
-			suaves.append(Vector3((a.x + b.x * 2.0 + c.x) * 0.25, 0.0, (a.z + b.z * 2.0 + c.z) * 0.25))
+			var media := Vector3((a.x + b.x * 2.0 + c.x) * 0.25, 0.0, (a.z + b.z * 2.0 + c.z) * 0.25)
+			suaves.append(media if _tem_peca_de_agua(media) else b)
 		suaves.append(ajustados[ajustados.size() - 1])
 		ajustados = suaves
 	return ajustados
+
+
+## O ponto cai numa celula que tem peca de rio ou de lago?
+func _tem_peca_de_agua(p: Vector3) -> bool:
+	var celula := Vector2i(
+		roundi(p.x / tamanho_do_modulo), roundi(p.z / tamanho_do_modulo))
+	return _celulas_de_agua.has(celula)
 
 
 func _construir_fita(raiz: Node3D, pontos_brutos: Array) -> void:
@@ -1384,10 +1454,7 @@ func _construir_fita(raiz: Node3D, pontos_brutos: Array) -> void:
 		if direcao.length_squared() < 0.001:
 			direcao = Vector3.FORWARD
 		var lado := direcao.normalized().cross(Vector3.UP).normalized() * largura
-		# A lamina fica acima do fundo de verdade, lido da malha ja deformada,
-		# e nao a uma distancia fixa da altura macro: o leito do pacote desvia
-		# dentro da celula, e uma altura calculada some enterrada num trecho e
-		# transborda no seguinte.
+		# A lamina fica acima do fundo de verdade, lido da malha ja deformada.
 		var altura := maxf(_altura_do_chao(p.x, p.z) + lamina_do_rio, _nivel_do_lago())
 		vertices.append(Vector3(p.x - lado.x, altura, p.z - lado.z))
 		vertices.append(Vector3(p.x + lado.x, altura, p.z + lado.z))
@@ -1411,12 +1478,10 @@ func _construir_fita(raiz: Node3D, pontos_brutos: Array) -> void:
 	raiz.add_child(visual)
 
 
-## Existe rio e lago montados neste mapa?
 func tem_agua() -> bool:
 	return _lago_pronto
 
 
-## Centro do lago em metros, na altura da lamina.
 func centro_do_lago_em_metros() -> Vector3:
 	return Vector3(
 		float(_centro_do_lago.x) * tamanho_do_modulo,
@@ -1424,7 +1489,6 @@ func centro_do_lago_em_metros() -> Vector3:
 		float(_centro_do_lago.y) * tamanho_do_modulo)
 
 
-## Um ponto ao longo do rio, de 0 (junto ao lago) a 1 (nascente).
 func ponto_do_rio_em_metros(fracao: float) -> Vector3:
 	if _caminho_do_rio.is_empty():
 		return centro_do_lago_em_metros()

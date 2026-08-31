@@ -221,6 +221,7 @@ func _init() -> void:
 				"nome": entrada["nome"],
 				"bordas": entrada["bordas"],
 				"cruzamentos": entrada["cruzamentos"],
+				"perfis": entrada["perfis"],
 				"y_min": entrada["y_min"],
 			})
 		else:
