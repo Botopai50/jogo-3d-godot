@@ -86,6 +86,19 @@ func mouse_esta_capturado() -> bool:
 	return Input.mouse_mode == Input.MOUSE_MODE_CAPTURED
 
 
+func _input(evento: InputEvent) -> void:
+	# Consome atalhos perigosos enquanto a gameplay esta com o mouse preso.
+	if mouse_esta_capturado() and atalho_protegido(evento):
+		get_viewport().set_input_as_handled()
+
+
+func atalho_protegido(evento: InputEvent) -> bool:
+	if not evento is InputEventKey:
+		return false
+	var tecla := evento as InputEventKey
+	return tecla.pressed and tecla.ctrl_pressed and tecla.keycode in [KEY_W, KEY_R]
+
+
 func _unhandled_input(evento: InputEvent) -> void:
 	if evento is InputEventMouseMotion and mouse_esta_capturado():
 		olhar((evento as InputEventMouseMotion).relative)

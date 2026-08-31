@@ -244,6 +244,12 @@ func rodar() -> void:
 		"Espaco faz o personagem subir durante o voo")
 	personagem.alternar_voo()
 	checar(not personagem.esta_voando(), "F pode desativar o modo de voo")
+	var ctrl_w := InputEventKey.new()
+	ctrl_w.pressed = true
+	ctrl_w.ctrl_pressed = true
+	ctrl_w.keycode = KEY_W
+	checar(personagem.atalho_protegido(ctrl_w),
+		"Ctrl+W e bloqueado durante a gameplay")
 	personagem.voltar_ao_inicio()
 	await avancar(90)
 
