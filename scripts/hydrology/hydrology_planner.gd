@@ -12,7 +12,7 @@ var errors := PackedStringArray()
 # Os modulos CPT de rio usam o topo do solo em y = 0 e escavam o canal para
 # baixo. A lamina fica dentro dessa escavacao: acima do fundo, mas abaixo do
 # solo seco, que naturalmente esconde as partes do plano fora do canal.
-const WATER_LEVEL_BELOW_GROUND := 0.001
+const WATER_LEVEL_ABOVE_GROUND := 0.025
 
 
 func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
@@ -32,13 +32,16 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		errors.append("nao foi possivel criar um rio completo ate o oceano")
 		return
 	var lake_index := clampi(int(float(path_cells.size()) * 0.55), 2, path_cells.size() - 2)
+	var previous_exit_fraction := 0.0
+	var has_previous_exit := false
 	for index in range(path_cells.size()):
 		var cell := path_cells[index]
 		var entry := -1 if index == 0 else _direction_index(path_cells[index - 1] - cell)
 		var exit := -1 if index == path_cells.size() - 1 else _direction_index(path_cells[index + 1] - cell)
 		if index == path_cells.size() - 1:
 			exit = _ocean_side(cell, land_cells)
-		var asset := _choose_asset(catalog, entry, exit, seed + index * 7919)
+		var asset := _choose_asset(catalog, entry, exit,
+			previous_exit_fraction, has_previous_exit)
 		if asset.is_empty():
 			errors.append("sem tile compativel em %s" % cell)
 			continue
@@ -49,14 +52,19 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		tile.rotation_quarters = int(asset["rotation"])
 		tile.river_width = tile_size * 0.14
 		tile.water_type = WaterTileData.WaterType.LAKE if index == lake_index else WaterTileData.WaterType.RIVER
-		# A peca hidrologica e posicionada em y = 0. Nao usamos a altura macro
-		# do terreno comum aqui, pois o proprio modelo CPT contem a depressao.
-		tile.water_height = -WATER_LEVEL_BELOW_GROUND * (tile_size / 100.0)
+		var center_x := float(cell.x) * tile_size
+		var center_z := float(cell.y) * tile_size
+		# O modulo recebe a altura macro da ilha durante a deformacao. A agua
+		# usa a mesma referencia ampla, sem copiar as irregularidades do leito.
+		tile.water_height = float(height_sampler.call(center_x, center_z)) \
+			+ WATER_LEVEL_ABOVE_GROUND * (tile_size / 100.0)
 		if entry >= 0:
-			_add_socket(tile, entry, -tile.river_width * 0.05, tile.water_height,
+			_add_socket(tile, entry, float(asset["entry_fraction"]) * tile_size,
+				tile.water_height,
 				RiverConnection.Kind.RIVER)
 		if exit >= 0:
-			_add_socket(tile, exit, tile.river_width * 0.05, tile.water_height,
+			_add_socket(tile, exit, float(asset["exit_fraction"]) * tile_size,
+				tile.water_height,
 				RiverConnection.Kind.OCEAN if index == path_cells.size() - 1 else RiverConnection.Kind.RIVER)
 		if tile.water_type == WaterTileData.WaterType.LAKE:
 			_build_lake_mask(tile)
@@ -66,6 +74,8 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 			"cell": cell, "name": asset["name"], "rotation": asset["rotation"],
 			"water_type": tile.water_type})
 		tiles.append(tile)
+		previous_exit_fraction = float(asset["exit_fraction"])
+		has_previous_exit = exit >= 0
 
 
 func _load_catalog(path: String) -> Array:
@@ -163,32 +173,79 @@ func _ocean_side(cell: Vector2i, land_cells: Dictionary) -> int:
 	return RiverConnection.Side.SOUTH
 
 
-func _rotated_open_sides(borders: Array, rotation: int) -> Dictionary:
-	var result := {}
-	for side in range(mini(4, borders.size())):
-		if int(borders[side]) != 0:
-			# Em Godot, uma rotacao positiva em Y leva NORTH para WEST.
-			# Os indices crescem no sentido horario, portanto o indice diminui.
-			result[posmod(side - rotation, 4)] = true
+func _edge_point(side: int, fraction: float) -> Vector2:
+	match side:
+		RiverConnection.Side.NORTH: return Vector2(fraction, -0.5)
+		RiverConnection.Side.EAST: return Vector2(0.5, fraction)
+		RiverConnection.Side.SOUTH: return Vector2(fraction, 0.5)
+		_: return Vector2(-0.5, fraction)
+
+
+func _rotate_point(point: Vector2, turns: int) -> Vector2:
+	var result := point
+	for unused in range(posmod(turns, 4)):
+		result = Vector2(result.y, -result.x)
 	return result
 
 
-func _choose_asset(catalog: Array, entry: int, exit: int, salt: int) -> Dictionary:
+func _world_edge(point: Vector2) -> Dictionary:
+	if absf(point.y + 0.5) < 0.01:
+		return {"side": RiverConnection.Side.NORTH, "fraction": point.x}
+	if absf(point.x - 0.5) < 0.01:
+		return {"side": RiverConnection.Side.EAST, "fraction": point.y}
+	if absf(point.y - 0.5) < 0.01:
+		return {"side": RiverConnection.Side.SOUTH, "fraction": point.x}
+	return {"side": RiverConnection.Side.WEST, "fraction": point.y}
+
+
+func _rotated_edges(asset: Dictionary, rotation: int) -> Dictionary:
+	var result := {}
+	var borders: Array = asset.get("bordas", [])
+	var crossings: Array = asset.get("cruzamentos", [])
+	if borders.size() != 4 or crossings.size() != 4:
+		return result
+	for local_side in range(4):
+		if int(borders[local_side]) == 0:
+			continue
+		var edge := _world_edge(_rotate_point(
+			_edge_point(local_side, float(crossings[local_side])), rotation))
+		result[int(edge["side"])] = {
+			"fraction": float(edge["fraction"]),
+			"class": int(borders[local_side])}
+	return result
+
+
+func _choose_asset(catalog: Array, entry: int, exit: int,
+		previous_fraction: float, has_previous: bool) -> Dictionary:
 	var desired := {}
 	if entry >= 0: desired[entry] = true
 	if exit >= 0: desired[exit] = true
-	var candidates: Array[Dictionary] = []
+	var best := {}
+	var best_score := INF
 	for asset: Dictionary in catalog:
 		var borders: Array = asset.get("bordas", [])
 		if borders.size() != 4:
 			continue
+		# Classe 6 representa grandes rebaixos/bacias do pacote e deixa blocos
+		# retangulares de agua expostos. Para o curso usamos somente canais.
+		if borders.any(func(value): return int(value) == 6):
+			continue
 		for rotation in range(4):
-			var open := _rotated_open_sides(borders, rotation)
-			if open.keys().all(func(side): return desired.has(side)) and open.size() == desired.size():
-				candidates.append({"name": asset["nome"], "rotation": rotation})
-	if candidates.is_empty():
-		return {}
-	return candidates[posmod(salt, candidates.size())]
+			var edges := _rotated_edges(asset, rotation)
+			if edges.size() != desired.size() or not edges.keys().all(
+					func(side): return desired.has(side)):
+				continue
+			var entry_fraction := float(edges[entry]["fraction"]) if entry >= 0 else 0.0
+			var exit_fraction := float(edges[exit]["fraction"]) if exit >= 0 else 0.0
+			var score := absf(entry_fraction - previous_fraction) * 20.0 if has_previous else absf(exit_fraction)
+			if entry >= 0 and exit >= 0 and posmod(entry + 2, 4) == exit:
+				score += absf(entry_fraction - exit_fraction) * 3.0
+			score += maxf(0.0, -float(asset.get("y_min", -2.0)) - 2.5) * 0.1
+			if score < best_score:
+				best_score = score
+				best = {"name": asset["nome"], "rotation": rotation,
+					"entry_fraction": entry_fraction, "exit_fraction": exit_fraction}
+	return best
 
 
 func _add_socket(tile: WaterTileData, side: int, lateral: float, height: float,

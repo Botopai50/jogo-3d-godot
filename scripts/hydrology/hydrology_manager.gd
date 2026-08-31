@@ -132,10 +132,20 @@ func validate_network() -> PackedStringArray:
 
 
 func build_geometry() -> void:
+	_install_geometry(geometry_generator.build_mesh(_tile_array(), paths))
+
+
+func build_geometry_from_terrain(height_grid_provider: Callable,
+		macro_height_sampler: Callable) -> void:
+	_install_geometry(geometry_generator.build_terrain_masked_mesh(
+		_tile_array(), height_grid_provider, macro_height_sampler))
+
+
+func _install_geometry(mesh: ArrayMesh) -> void:
 	var previous := get_node_or_null("WaterGeometry")
 	if previous != null:
+		remove_child(previous)
 		previous.queue_free()
-	var mesh := geometry_generator.build_mesh(_tile_array(), paths)
 	if mesh.get_surface_count() > 0:
 		var visual := MeshInstance3D.new()
 		visual.name = "WaterGeometry"

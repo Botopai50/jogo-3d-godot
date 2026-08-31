@@ -171,6 +171,8 @@ func gerar() -> void:
 	_montar_terreno(raiz_terreno)
 	if gerar_rio:
 		_montar_modulos_do_rio(_novo_grupo("Rio"))
+		_hydrology.build_geometry_from_terrain(Callable(self, "_grade_de_altura"),
+			Callable(self, "_altura_macro_do_terreno"))
 	_montar_limite()
 	_montar_marcos(raiz_detalhes)
 	# Afloramentos de porte medio e pedras pequenas saem do mesmo acervo de
