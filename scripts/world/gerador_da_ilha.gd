@@ -77,6 +77,9 @@ const LARGURA_DE_ROCHA := 30.0
 @export_range(0, 60, 1) var quantidade_de_ilhotas := 14
 ## Quantas nuvens pousar no ceu.
 @export_range(0, 80, 1) var quantidade_de_nuvens := 28
+## Quanto cada peca solta afunda no chao. As montanhas do pacote sao cascas sem
+## fundo: enterrar a base garante que a abertura nunca fique visivel.
+@export_range(0.0, 5.0, 0.1) var afundamento_das_pecas := 0.6
 ## Altura em que as nuvens flutuam, em metros.
 @export_range(60.0, 600.0, 10.0) var altura_das_nuvens := 260.0
 ## Altura das paredes invisiveis que seguram o personagem na ilha.
@@ -94,6 +97,8 @@ var _rochas: Array = []
 var _ilhotas: Array = []
 var _nuvens: Array = []
 var _material_das_nuvens: StandardMaterial3D
+var _modulo_da_celula: Dictionary = {}
+var _superficie_da_celula: Dictionary = {}
 var _ruido_de_altura_amplo := FastNoiseLite.new()
 var _ruido_de_altura_fino := FastNoiseLite.new()
 
@@ -109,6 +114,8 @@ func gerar() -> void:
 		filho.queue_free()
 	_cache.clear()
 	_celulas.clear()
+	_modulo_da_celula.clear()
+	_superficie_da_celula.clear()
 	_aleatorio.seed = semente
 	_configurar_ruido_de_altura()
 
@@ -172,11 +179,21 @@ func _carregar_acervo() -> void:
 
 
 ## Escolhe uma peca do acervo de forma estavel, a partir de um numero de ruido.
-func _sortear(lista: Array, sorte: float) -> String:
+func _sortear(lista: Array, sorte: float) -> Dictionary:
 	if lista.is_empty():
-		return ""
+		return {}
 	var indice := int(sorte * float(lista.size())) % lista.size()
-	return (lista[indice] as Dictionary)["nome"]
+	return lista[indice]
+
+
+## Quanto uma peca solta deve afundar no chao.
+##
+## As montanhas do pacote sao cascas sem fundo. Enterrar so alguns centimetros
+## resolve no plano, mas uma peca larga sobre encosta continua boiando de um
+## lado: o afundamento cresce com a largura. O limite pela propria altura evita
+## que uma pedra baixa suma dentro do terreno.
+func _afundamento(largura: float, altura: float) -> float:
+	return minf(afundamento_das_pecas + largura * 0.04, maxf(altura * 0.35, 0.2))
 
 
 ## Quantos modulos distintos o cenario tem a disposicao.
@@ -456,6 +473,7 @@ func _montar_terreno(raiz: Node3D) -> void:
 		_deformar_modulo(modulo, _escala_vertical(faixa, gx, gz))
 		_aplicar_material_continuo(modulo)
 		raiz.add_child(modulo)
+		_modulo_da_celula[Vector2i(gx, gz)] = modulo
 
 
 ## Cria uma praia continua com contorno arredondado. O miolo fica alguns
@@ -588,18 +606,99 @@ func _montar_marcos(raiz: Node3D) -> void:
 		indice += maxi(1, candidatas.size() / maxi(quantidade_de_marcos, 1))
 		if celula == _celula_de_nascimento:
 			continue
-		var nome := _sortear(_marcos, _ruido(celula.x, celula.y, 200 + usadas))
-		if nome == "":
+		var peca := _sortear(_marcos, _ruido(celula.x, celula.y, 200 + usadas))
+		if peca.is_empty():
 			break
-		var marco := _cena(PASTA_PROPS, nome).instantiate() as Node3D
+		var marco := _cena(PASTA_PROPS, peca["nome"]).instantiate() as Node3D
 		marco.name = "Marco_%d_%d" % [celula.x, celula.y]
 		marco.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
-		marco.position.y = _altura_macro_do_terreno(marco.position.x, marco.position.z)
+		var escala_do_marco := escala_dos_marcos * (tamanho_do_modulo / 100.0)
+		marco.scale = Vector3.ONE * escala_do_marco
+		marco.position.y = _altura_do_chao(marco.position.x, marco.position.z) - _afundamento(
+			float(peca["largura"]) * escala_do_marco,
+			(float(peca["y_max"]) - float(peca["y_min"])) * escala_do_marco)
 		marco.rotation.y = _ruido(celula.x, celula.y, 5) * TAU
-		marco.scale = Vector3.ONE * escala_dos_marcos * (tamanho_do_modulo / 100.0)
 		_aplicar_material_continuo(marco)
+		_dar_colisao(marco)
 		raiz.add_child(marco)
 		usadas += 1
+
+
+## Altura da superficie onde o jogador pisa, num ponto qualquer.
+##
+## Nao basta a altura macro: cada modulo tem o proprio relevo por cima dela, de
+## alguns centimetros numa planicie a dezenas de metros num pico. Pousar uma
+## peca solta pela altura macro deixava as montanhas boiando, e como elas sao
+## cascas sem fundo dava para ver por baixo, para dentro delas.
+func _altura_do_chao(x: float, z: float) -> float:
+	var celula := Vector2i(roundi(x / tamanho_do_modulo), roundi(z / tamanho_do_modulo))
+	var superficie: Variant = _superficie_da_celula.get(celula)
+	if superficie == null:
+		superficie = _preparar_superficie(celula)
+		if superficie == null:
+			return _altura_macro_do_terreno(x, z)
+
+	var dados: Dictionary = superficie
+	var modulo: Node3D = _modulo_da_celula[celula]
+	var local: Vector3 = modulo.transform.affine_inverse() * Vector3(x, 0.0, z)
+	var vertices: PackedVector3Array = dados["vertices"]
+	var indices: PackedInt32Array = dados["indices"]
+	for i in range(0, indices.size(), 3):
+		var a := vertices[indices[i]]
+		var b := vertices[indices[i + 1]]
+		var c := vertices[indices[i + 2]]
+		var peso := _baricentricas(local.x, local.z, a, b, c)
+		if peso == Vector3.INF:
+			continue
+		return modulo.position.y + a.y * peso.x + b.y * peso.y + c.y * peso.z
+	return _altura_macro_do_terreno(x, z)
+
+
+func _preparar_superficie(celula: Vector2i) -> Variant:
+	if not _modulo_da_celula.has(celula):
+		return null
+	var modulo: Node3D = _modulo_da_celula[celula]
+	var visual := modulo.get_node_or_null("Malha") as MeshInstance3D
+	if visual == null or visual.mesh == null:
+		return null
+	var arrays: Array = visual.mesh.surface_get_arrays(0)
+	var dados := {"vertices": arrays[Mesh.ARRAY_VERTEX], "indices": arrays[Mesh.ARRAY_INDEX]}
+	_superficie_da_celula[celula] = dados
+	return dados
+
+
+## Coordenadas baricentricas do ponto (x, z) dentro do triangulo, olhando de
+## cima. Devolve Vector3.INF quando o ponto cai fora.
+func _baricentricas(x: float, z: float, a: Vector3, b: Vector3, c: Vector3) -> Vector3:
+	var v0x := b.x - a.x
+	var v0z := b.z - a.z
+	var v1x := c.x - a.x
+	var v1z := c.z - a.z
+	var denominador := v0x * v1z - v1x * v0z
+	if absf(denominador) < 0.000001:
+		return Vector3.INF
+	var v2x := x - a.x
+	var v2z := z - a.z
+	var beta := (v2x * v1z - v1x * v2z) / denominador
+	var gama := (v0x * v2z - v2x * v0z) / denominador
+	if beta < -0.0001 or gama < -0.0001 or beta + gama > 1.0001:
+		return Vector3.INF
+	return Vector3(1.0 - beta - gama, beta, gama)
+
+
+## Da colisao a uma peca solta, a partir da propria malha. Sem isto o jogador
+## atravessa montanhas e afloramentos como se fossem cenario de fundo.
+func _dar_colisao(peca: Node3D) -> void:
+	var visual := peca.get_node_or_null("Malha") as MeshInstance3D
+	if visual == null or visual.mesh == null or not (peca is StaticBody3D):
+		return
+	if peca.get_node_or_null("Colisao") != null:
+		return
+	var forma := CollisionShape3D.new()
+	forma.name = "Colisao"
+	forma.shape = visual.mesh.create_trimesh_shape()
+	forma.transform = visual.transform
+	peca.add_child(forma)
 
 
 ## Espalha pecas soltas sobre as celulas planas. Serve tanto para as pedras
@@ -612,8 +711,8 @@ func _espalhar(raiz: Node3D, lista: Array, quantidade: int, prefixo: String,
 		return
 	for i in range(quantidade):
 		var celula: Vector2i = planas[(i * 7 + 3) % planas.size()]
-		var nome := _sortear(lista, _ruido(celula.x, celula.y, sal + i * 13))
-		var rocha := _cena(PASTA_PROPS, nome).instantiate() as Node3D
+		var peca := _sortear(lista, _ruido(celula.x, celula.y, sal + i * 13))
+		var rocha := _cena(PASTA_PROPS, peca["nome"]).instantiate() as Node3D
 		rocha.name = "%s_%d" % [prefixo, i]
 		var desvio := Vector3(
 			(_ruido(celula.x, celula.y, sal + 10 + i) - 0.5) * tamanho_do_modulo * 0.8,
@@ -621,13 +720,19 @@ func _espalhar(raiz: Node3D, lista: Array, quantidade: int, prefixo: String,
 			(_ruido(celula.x, celula.y, sal + 40 + i) - 0.5) * tamanho_do_modulo * 0.8
 		)
 		rocha.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo) + desvio
-		rocha.position.y = _altura_macro_do_terreno(rocha.position.x, rocha.position.z)
 		rocha.rotation.y = _ruido(celula.x, celula.y, sal + 70 + i) * TAU
 		var faixa_de_escala := escala_max - escala_min
 		var escala := (escala_min + _ruido(celula.x, celula.y, sal + 90 + i) * faixa_de_escala) \
 			* (tamanho_do_modulo / 100.0)
 		rocha.scale = Vector3(escala, escala, escala)
+		# A altura vem depois da escala: a peca precisa pousar na superficie de
+		# verdade, e nao na altura macro, senao fica boiando com o fundo aberto
+		# a mostra.
+		rocha.position.y = _altura_do_chao(rocha.position.x, rocha.position.z) - _afundamento(
+			float(peca["largura"]) * escala,
+			(float(peca["y_max"]) - float(peca["y_min"])) * escala)
 		_aplicar_material_continuo(rocha)
+		_dar_colisao(rocha)
 		raiz.add_child(rocha)
 
 
@@ -644,8 +749,10 @@ func _montar_nuvens(raiz: Node3D) -> void:
 		_material_das_nuvens.albedo_color.a = 0.85
 	var raio := raio_em_metros()
 	for i in range(quantidade_de_nuvens):
-		var nome := _sortear(_nuvens, _ruido(i, i * 3, 900))
-		var nuvem := _cena(PASTA_NUVENS, nome).instantiate() as Node3D
+		var peca := _sortear(_nuvens, _ruido(i, i * 3, 900))
+		if peca.is_empty():
+			break
+		var nuvem := _cena(PASTA_NUVENS, peca["nome"]).instantiate() as Node3D
 		nuvem.name = "Nuvem_%d" % i
 		var angulo := TAU * _ruido(i, i * 5, 910)
 		var distancia := raio * (0.15 + _ruido(i, i * 7, 920) * 1.1)
@@ -667,10 +774,10 @@ func _montar_nuvens(raiz: Node3D) -> void:
 func _montar_ilhotas(raiz: Node3D) -> void:
 	var raio := raio_em_metros()
 	for i in range(quantidade_de_ilhotas):
-		var nome := _sortear(_ilhotas, _ruido(i, i * 3, 800))
-		if nome == "":
+		var peca := _sortear(_ilhotas, _ruido(i, i * 3, 800))
+		if peca.is_empty():
 			break
-		var ilhota := _cena(PASTA_ILHOTAS, nome).instantiate() as Node3D
+		var ilhota := _cena(PASTA_ILHOTAS, peca["nome"]).instantiate() as Node3D
 		ilhota.name = "Ilhota_%d" % i
 		var angulo := TAU * (float(i) / maxf(float(quantidade_de_ilhotas), 1.0)) + 0.6
 		var distancia := raio + 180.0 + _ruido(i, i * 3, 200) * 320.0
@@ -679,4 +786,8 @@ func _montar_ilhotas(raiz: Node3D) -> void:
 		# Sem isto as ilhotas ficam brancas: elas nao passam pelo mesmo caminho
 		# do terreno, entao precisam receber o material continuo aqui.
 		_aplicar_material_continuo(ilhota)
+		# As ilhotas ficam alem das paredes do limite, entao hoje o jogador nao
+		# alcanca nenhuma. A colisao entra assim mesmo: sai barato e evita que
+		# um ajuste futuro no limite deixe ilha atravessavel sem ninguem notar.
+		_dar_colisao(ilhota)
 		raiz.add_child(ilhota)
