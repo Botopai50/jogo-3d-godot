@@ -76,6 +76,9 @@ var comprimento_do_lago := 1
 ## Quanto a lamina de agua fica acima do fundo das pecas CPT_River e
 ## CPT_River_End. O recorte pela margem impede que esse nivel forme um quadrado.
 @export_range(0.1, 8.0, 0.1) var lamina_do_rio := 2.0
+## Multiplica somente a profundidade negativa dos modulos de rio. O topo seco
+## permanece no lugar e o leito fica mais fundo para acomodar a agua.
+@export_range(1.0, 4.0, 0.1) var exagero_da_profundidade_do_rio := 2.0
 ## Largura da agua do rio, como fracao da celula.
 @export_range(0.05, 0.4, 0.01) var largura_da_agua_do_rio := 0.13
 
@@ -339,7 +342,8 @@ func _altura_macro_do_terreno(x: float, z: float) -> float:
 ## Incorpora a escala vertical e a altura macro aos vertices de uma instancia
 ## e refaz sua colisao. Isso evita tanto as emendas em degrau quanto a diferenca
 ## entre o que o jogador ve e a superficie onde ele pisa.
-func _deformar_modulo(modulo: Node3D, escala_vertical: float) -> void:
+func _deformar_modulo(modulo: Node3D, escala_vertical: float,
+		exagero_da_profundidade := 1.0) -> void:
 	var visual := modulo.get_node_or_null("Malha") as MeshInstance3D
 	if visual == null or visual.mesh == null:
 		return
@@ -373,6 +377,8 @@ func _deformar_modulo(modulo: Node3D, escala_vertical: float) -> void:
 			var vertice := transformacao_original * vertices[indice]
 			vertice.x *= escala_horizontal
 			vertice.y *= escala_vertical_final
+			if vertice.y < 0.0:
+				vertice.y *= exagero_da_profundidade
 			vertice.z *= escala_horizontal
 			var ponto_na_ilha := modulo.transform * vertice
 			vertice.y += _altura_macro_do_terreno(ponto_na_ilha.x, ponto_na_ilha.z)
@@ -1236,7 +1242,8 @@ func _montar_modulos_do_rio(raiz: Node3D) -> void:
 		peca.rotation.y = float(placement["rotation"]) * PI * 0.5
 		# Escala vertical igual a horizontal: canal e bacia precisam manter a
 		# propria proporcao, senao viram riscos rasos no chao.
-		_deformar_modulo(peca, escala_uniforme)
+		_deformar_modulo(peca, escala_uniforme,
+			exagero_da_profundidade_do_rio)
 		_aplicar_material_continuo(peca)
 		raiz.add_child(peca)
 		_modulo_da_celula[celula] = peca

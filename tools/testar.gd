@@ -142,6 +142,8 @@ func rodar() -> void:
 	checar(boiando == 0, "nenhuma peca solta fica acima do chao", "(%d boiando)" % boiando)
 
 	print("--- hidrologia nova ---")
+	checar(is_equal_approx(ilha.exagero_da_profundidade_do_rio, 2.0),
+		"o leito do rio usa exagero de profundidade 2x")
 	var hydrology: HydrologyManager = ilha.get_node_or_null("Hydrology")
 	checar(hydrology != null, "HydrologyManager existe separado do Terrain Grid")
 	checar(ilha.tem_agua(), "a geometria hidrologica foi criada")
