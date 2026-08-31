@@ -141,9 +141,9 @@ func rodar() -> void:
 	checar(sem_colisao == 0, "montanhas e pedras tem colisao", "(%d sem)" % sem_colisao)
 	checar(boiando == 0, "nenhuma peca solta fica acima do chao", "(%d boiando)" % boiando)
 
-	print("--- rio e lago ---")
+	print("--- rio ---")
 	var agua := ilha.get_node_or_null("Agua")
-	checar(ilha.tem_agua(), "o lago existe")
+	checar(ilha.tem_agua(), "o rio existe")
 	var celulas_de_rio := 0
 	var celulas_de_lago := 0
 	var pior_desalinho := 0.0
@@ -156,8 +156,7 @@ func rodar() -> void:
 			celulas_de_lago += 1
 			pior_fresta = maxf(pior_fresta, float(item["escolha"].get("erro", 0.0)))
 	print("  celulas de lago: %d | pior fresta entre margens: %.2f m" % [celulas_de_lago, pior_fresta])
-	checar(celulas_de_lago >= 4, "o lago e montado com pecas do pacote", "(%d celulas)" % celulas_de_lago)
-	checar(pior_fresta < 0.5, "as margens do lago encaixam sem fresta", "(%.2f m)" % pior_fresta)
+	checar(celulas_de_lago == 0, "nao existe lago retangular separado", "(%d celulas)" % celulas_de_lago)
 	print("  celulas de rio: %d | pior desalinho do leito: %.3f do lado (%.1f m)" % [
 		celulas_de_rio, pior_desalinho, pior_desalinho * ilha.tamanho_do_modulo])
 	checar(celulas_de_rio >= 2, "o rio tem trecho suficiente", "(%d celulas)" % celulas_de_rio)
@@ -165,7 +164,7 @@ func rodar() -> void:
 	# sempre deixa alguma sobra. Acima de um decimo do lado a emenda aparece.
 	checar(pior_desalinho < 0.10, "as pecas de rio encadeiam alinhadas",
 		"(%.1f m)" % (pior_desalinho * ilha.tamanho_do_modulo))
-	checar(agua != null and agua.get_node_or_null("LaminaDoLago") != null, "o lago tem lamina de agua")
+	checar(agua != null and agua.get_node_or_null("LaminaDoLago") == null, "nao existe lamina retangular de lago")
 	checar(agua != null and agua.get_node_or_null("LaminaDoRio") != null, "o rio tem lamina de agua")
 
 	# Toda a agua doce tem que ficar dentro das pecas CPT_River / CPT_River_End.

@@ -65,20 +65,16 @@ const LARGURA_DE_ROCHA := 30.0
 @export_group("Rio e lago")
 ## Liga o rio e o lago. Eles ocupam celulas que seriam de terreno comum.
 @export var gerar_rio := true
-## Tamanho do lago em celulas. As margens do pacote sao rampas que descem de
-## uma borda a outra, entao um lago fechado tem exatamente duas celulas de
-## profundidade: as margens opostas se encontram no meio, ambas no fundo.
-@export_range(2, 6, 1) var comprimento_do_lago := 3
-## Quanto a lamina do lago fica abaixo da borda da bacia, em metros.
-##
-## O canal das pecas CPT_River chega a cerca de dois metros abaixo da borda.
-## Uma profundidade maior deixa agua no fundo do lago, mas separada do rio por
-## uma faixa seca dentro da propria peca de saida.
-@export_range(0.05, 2.0, 0.05) var lamina_do_lago := 0.05
+## O antigo lago de 3x2 celulas foi removido. Resta somente uma peca
+## CPT_River_End para fechar o curso do rio.
+var comprimento_do_lago := 1
+## Profundidade da agua dentro da depressao da CPT_River_End.
+@export_range(0.5, 8.0, 0.1) var lamina_do_lago := 4.2
 ## Quantas celulas o rio percorre subindo da margem do lago ate a nascente.
 @export_range(2, 20, 1) var comprimento_do_rio := 7
-## Quanto a lamina de agua do rio fica acima do fundo do canal, em metros.
-@export_range(0.1, 3.0, 0.1) var lamina_do_rio := 1.2
+## Quanto a lamina de agua fica acima do fundo das pecas CPT_River e
+## CPT_River_End. O recorte pela margem impede que esse nivel forme um quadrado.
+@export_range(0.1, 8.0, 0.1) var lamina_do_rio := 2.0
 ## Largura da agua do rio, como fracao da celula.
 @export_range(0.05, 0.4, 0.01) var largura_da_agua_do_rio := 0.13
 
@@ -1070,80 +1066,31 @@ func _planejar_agua() -> void:
 	var pecas := _acervo_de_rio()
 	if pecas.is_empty():
 		return
-	var largura := comprimento_do_lago
-	var altura := 2
-	var canto: Variant = _escolher_canto_do_lago(largura, altura)
-	if canto == null:
+	# Usa a busca de local apenas para escolher uma regiao interna adequada. A
+	# antiga bacia retangular nao e mais instanciada: o proprio caminho recebe
+	# uma CPT_River_End em cada ponta.
+	var inicio: Variant = _escolher_canto_do_lago(1, 1)
+	if inicio == null:
 		return
-	var origem: Vector2i = canto
 	_celulas_do_lago.clear()
-	for dz in range(altura):
-		for dx in range(largura):
-			_celulas_do_lago.append(origem + Vector2i(dx, dz))
-	_centro_do_lago = origem + Vector2i(largura / 2, 0)
-
-	# Media das alturas do bloco: e nela que o lago fica aplainado, para a
-	# lamina nao ficar enterrada de um lado e boiando do outro.
-	var soma := 0.0
-	for celula: Vector2i in _celulas_do_lago:
-		soma += _altura_bruta_da_celula(celula)
-	_altura_do_lago = soma / float(_celulas_do_lago.size())
-	_lago_pronto = true
-
-	# A saida fica na celula do meio da margem mais alta: e de la que o rio desce.
-	var celula_de_saida: Vector2i = _celulas_do_lago[0]
-	var direcao_de_saida := Vector2i(0, -1)
-	var melhor_altura := -INF
-	for celula: Vector2i in _celulas_do_lago:
-		for direcao: Vector2i in DIRECOES:
-			var fora: Vector2i = celula + direcao
-			if _dentro_do_lago(fora) or not _celulas.has(fora) or _e_borda(fora.x, fora.y):
-				continue
-			var altura_fora := _altura_bruta_da_celula(fora)
-			if altura_fora > melhor_altura:
-				melhor_altura = altura_fora
-				celula_de_saida = celula
-				direcao_de_saida = direcao
-
-	_celula_de_saida = celula_de_saida
-	var decididas := _resolver_lago(pecas, celula_de_saida, direcao_de_saida)
-	for celula: Vector2i in _celulas_do_lago:
-		if not decididas.has(celula):
-			continue
-		_pecas_escolhidas.append({"celula": celula, "tipo": "lago", "escolha": decididas[celula]})
-		_celulas_de_agua[celula] = {"tipo": "lago"}
-
-	_caminho_do_rio = _tracar_rio(celula_de_saida + direcao_de_saida, direcao_de_saida)
+	_lago_pronto = false
+	_caminho_do_rio = _tracar_rio(inicio as Vector2i, Vector2i(0, -1))
 	if _caminho_do_rio.is_empty():
 		return
-	# A primeira peca do rio tambem precisa receber a posicao exata em que o
-	# canal sai do lago. Antes o alinhamento so comecava da segunda peca: a
-	# entrada do rio podia ficar dezenas de metros ao lado do vertedouro,
-	# deixando uma faixa de terreno seco entre as duas laminas.
+	_centro_do_lago = _caminho_do_rio[0]
 	var fracao_anterior := 0.0
 	var tem_anterior := false
-	if decididas.has(celula_de_saida):
-		var borda_de_saida := _direcao_para_borda(direcao_de_saida)
-		var escolha_da_saida: Dictionary = decididas[celula_de_saida]
-		var mundo_da_saida: Dictionary = escolha_da_saida["mundo"]
-		if mundo_da_saida.has(borda_de_saida):
-			fracao_anterior = float((mundo_da_saida[borda_de_saida] as Dictionary)["fracao"])
-			tem_anterior = true
 	for indice in range(_caminho_do_rio.size()):
 		var celula: Vector2i = _caminho_do_rio[indice]
-		var anterior: Vector2i = _caminho_do_rio[indice - 1] if indice > 0 else celula_de_saida
-		var entrada := _direcao_para_borda(anterior - celula)
+		var entrada := -1
+		if indice > 0:
+			entrada = _direcao_para_borda(_caminho_do_rio[indice - 1] - celula)
 		var saida := -1
 		if indice + 1 < _caminho_do_rio.size():
 			saida = _direcao_para_borda(_caminho_do_rio[indice + 1] - celula)
 		var escolha := _melhor_peca(pecas, entrada, saida, fracao_anterior, tem_anterior)
 		if escolha.is_empty():
 			break
-		if indice == 0:
-			# O teste de encaixe entre pecas mede rio--rio. A diferenca para o
-			# vertedouro do lago e coberta pelo curso continuo gerado abaixo.
-			escolha["desalinho_lago"] = escolha["desalinho"]
-			escolha["desalinho"] = 0.0
 		escolha["borda_entrada"] = entrada
 		escolha["borda_saida"] = saida
 		_pecas_escolhidas.append({"celula": celula, "tipo": "rio", "escolha": escolha})
@@ -1378,10 +1325,7 @@ func _grade_de_altura(celula: Vector2i, lado_da_grade: int) -> PackedFloat32Arra
 ## peca inteira ate a borda.
 func _niveis_da_agua(grades: Dictionary) -> Dictionary:
 	var niveis := {}
-	for celula: Vector2i in _celulas_de_agua.keys():
-		if _celulas_de_agua[celula]["tipo"] == "lago":
-			niveis[celula] = _nivel_do_lago()
-	var corrente := _nivel_do_lago()
+	var corrente := -INF
 	for item: Dictionary in _pecas_escolhidas:
 		if item["tipo"] != "rio":
 			continue
@@ -1398,10 +1342,15 @@ func _niveis_da_agua(grades: Dictionary) -> Dictionary:
 			continue
 		alturas.sort()
 		var mediana: float = alturas[alturas.size() / 2]
-		# Teto: nove decimos do caminho entre o fundo e o terreno tipico da
-		# peca. Acima disso a agua sai da depressao e vira um quadrado alagado.
+		# O preenchimento moderado ocupa a depressao. A faixa continua montada
+		# depois acompanha o fundo e garante a ligacao onde o relevo sobe.
 		var teto := fundo + (mediana - fundo) * 0.9
-		corrente = clampf(maxf(corrente, fundo + lamina_do_rio), fundo, maxf(teto, fundo))
+		var desejado := fundo + lamina_do_rio
+		if corrente == -INF:
+			corrente = desejado
+		else:
+			corrente = maxf(corrente, desejado)
+		corrente = clampf(corrente, fundo, maxf(teto, fundo))
 		niveis[celula] = corrente
 	return niveis
 
@@ -1636,14 +1585,13 @@ func _montar_laminas(raiz: Node3D) -> void:
 
 
 func tem_agua() -> bool:
-	return _lago_pronto
+	return not _caminho_do_rio.is_empty()
 
 
 func centro_do_lago_em_metros() -> Vector3:
-	return Vector3(
-		float(_centro_do_lago.x) * tamanho_do_modulo,
-		_nivel_do_lago(),
-		float(_centro_do_lago.y) * tamanho_do_modulo)
+	var x := float(_centro_do_lago.x) * tamanho_do_modulo
+	var z := float(_centro_do_lago.y) * tamanho_do_modulo
+	return Vector3(x, _altura_do_chao(x, z) + lamina_do_rio, z)
 
 
 func ponto_do_rio_em_metros(fracao: float) -> Vector3:
