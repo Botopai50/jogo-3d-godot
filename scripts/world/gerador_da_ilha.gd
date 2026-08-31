@@ -74,7 +74,7 @@ const LARGURA_DE_ROCHA := 30.0
 ## O canal das pecas CPT_River chega a cerca de dois metros abaixo da borda.
 ## Uma profundidade maior deixa agua no fundo do lago, mas separada do rio por
 ## uma faixa seca dentro da propria peca de saida.
-@export_range(0.5, 2.0, 0.1) var lamina_do_lago := 1.0
+@export_range(0.05, 2.0, 0.05) var lamina_do_lago := 0.05
 ## Quantas celulas o rio percorre subindo da margem do lago ate a nascente.
 @export_range(2, 20, 1) var comprimento_do_rio := 7
 ## Quanto a lamina de agua do rio fica acima do fundo do canal, em metros.
