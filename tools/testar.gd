@@ -184,6 +184,26 @@ func rodar() -> void:
 	print("  vertices de agua: %d | fora de peca de rio ou lago: %d" % [total_de_vertices, fora])
 	checar(fora == 0, "nenhuma agua fica fora dos modulos CPT_River", "(%d vertices)" % fora)
 
+	# O contrario tambem: nenhuma peca do pacote pode ficar seca. A depressao de
+	# CPT_River_End e um poco largo, e uma faixa de agua de largura fixa nao o
+	# enchia; a lamina passou a ser a propria depressao inundada.
+	var agua_por_celula := {}
+	for nome_da_lamina in ["LaminaDoRio", "LaminaDoLago"]:
+		var lamina := agua.get_node_or_null(nome_da_lamina) as MeshInstance3D
+		if lamina == null or lamina.mesh == null:
+			continue
+		for v in lamina.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX]:
+			var p: Vector3 = lamina.transform * v
+			var c := Vector2i(
+				roundi(p.x / ilha.tamanho_do_modulo), roundi(p.z / ilha.tamanho_do_modulo))
+			agua_por_celula[c] = int(agua_por_celula.get(c, 0)) + 1
+	var secas := 0
+	for item in ilha._pecas_escolhidas:
+		if int(agua_por_celula.get(item["celula"], 0)) == 0:
+			secas += 1
+	print("  pecas de agua secas: %d de %d" % [secas, ilha._pecas_escolhidas.size()])
+	checar(secas == 0, "nenhuma peca de rio ou lago fica seca", "(%d secas)" % secas)
+
 	# Nenhuma celula pode receber terreno comum e peca de rio ao mesmo tempo.
 	var repetidas := 0
 	for item in ilha._pecas_escolhidas:
