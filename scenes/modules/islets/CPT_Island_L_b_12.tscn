@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/CPT_Island_L_b_12.res" id="1_ogaaj"]
+
+[node name="CPT_Island_L_b_12" type="StaticBody3D" unique_id=152156468]
+
+[node name="Malha" type="MeshInstance3D" parent="." unique_id=508899796]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.69873047, 0, 3.4125862)
+mesh = ExtResource("1_ogaaj")

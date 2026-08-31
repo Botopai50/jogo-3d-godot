@@ -30,8 +30,8 @@ clicar na tela uma vez para começar a jogar.
 - Ilha de aproximadamente 1,3 km de ponta a ponta, com costa orgânica contínua e um miolo
   modular de 100x100 metros: grandes planícies, colinas esparsas e uma cadeia montanhosa
   curta com alturas variadas.
-- Mar em volta, ilhotas ao largo, montanhas isoladas e rochas espalhadas como pontos de
-  referência.
+- Mar em volta, ilhotas ao largo, montanhas isoladas, afloramentos e pedras espalhadas como
+  pontos de referência, e nuvens no céu — tudo sorteado do acervo do pacote.
 - Colisão em todo o terreno e paredes invisíveis na linha de costa, para o personagem não
   cair para fora do cenário.
 
@@ -71,10 +71,12 @@ navegador.
 │   ├── player/           # Cena do personagem
 │   ├── modules/          # Módulos reutilizáveis do cenário
 │   │   ├── terrain/      #   173 cenas, uma por módulo que entra no build
-│   │   ├── props/
-│   │   ├── islets/
 │   │   ├── malhas/       #   malhas em binário, compartilhadas pelas cenas
-│   │   └── faixas.json   #   módulos por faixa de relevo, gerado do catálogo
+│   │   ├── props/        #   480 montanhas, de pedras a maciços
+│   │   ├── islets/       #   153 ilhas para o mar
+│   │   ├── clouds/       #   4 nuvens
+│   │   ├── faixas.json   #   terreno por faixa de relevo, gerado do catálogo
+│   │   └── acervo.json   #   peças soltas com largura e altura medidas
 │   └── world/
 │       ├── island/       # Ilha
 │       └── ocean/        # Oceano
@@ -171,14 +173,33 @@ sem nenhum erro, e prontos para uso futuro.
 | `triangulos` | custo da peça |
 | `lod` | se o arquivo é uma cópia de LOD |
 
-Dos 3.263, **1.456 encaixam** em alguma grade. O jogo usa hoje os **173** que encaixam na grade
-de 100 metros, não são cópia de LOD e não afundam abaixo do nível do mar — desses o gerador
-sorteia célula a célula, e um mapa típico mostra ~50 peças distintas.
+Dos 3.263, **1.456 encaixam** em alguma grade. O build do jogo leva **810 módulos**:
 
-**O build do navegador leva só esses 173.** Os 317 MB de `.fbx` de origem ficam de fora do
-export (`export_presets.cfg`), então o acervo completo fica no repositório sem pesar no jogo.
-Para usar mais peças depois, basta afrouxar o filtro em `tools/build_modules.gd` — por exemplo
-aceitando pegada de 50 e 25 metros, ou as categorias River e Ice.
+| Tipo | No build | De onde vem | Como o cenário usa |
+| --- | ---: | --- | --- |
+| Terreno | 173 | encaixam em 100 m, sem LOD, não afundam | grade da ilha |
+| Montanhas | 480 | todas as `Mountains` sem LOD | marcos, afloramentos e pedras, separados pela largura medida |
+| Ilhas | 153 | `Islands` S, M e L sem LOD | ilhotas no mar em volta |
+| Nuvens | 4 | `Clouds` | céu |
+
+Um mapa típico coloca ~160 peças e mostra **113 módulos distintos**.
+
+Ficam de fora do build, de propósito:
+
+- **as 47 ilhas `H`** — massas de 445 m com quase 10 mil triângulos cada, feitas para *ser* a
+  ilha principal, não enfeite no horizonte; sozinhas pesavam mais que todo o terreno;
+- **as 1.579 cópias de LOD** — mesma geometria, e o Godot gera o nível de detalhe sozinho;
+- **`River` e `Ice`** (262) — são leitos de rio e placas de gelo que afundam de 1 a 7 metros
+  abaixo do nível do mar; entrariam como poços alagados numa ilha tropical;
+- **terreno de 50 e 25 m** — encaixa em subgrades que o gerador ainda não subdivide.
+
+**Os 317 MB de `.fbx` de origem ficam de fora do export** (`export_presets.cfg`), então o
+acervo completo fica no repositório sem pesar no jogo. Para usar mais peças depois, basta
+afrouxar os filtros em `tools/build_modules.gd`.
+
+As malhas assadas guardam só posição, normal e índices: as coordenadas de textura não são
+lidas por ninguém, já que o cenário é pintado pelo shader em coordenadas globais. Descartá-las
+cortou cerca de um quarto do tamanho de cada malha.
 
 Um detalhe do formato: cada arquivo `_LOD.fbx` guarda **três malhas sobrepostas** (LOD0, LOD1 e
 LOD2). O build usa apenas a LOD0; instanciar o arquivo inteiro desenharia geometria repetida no

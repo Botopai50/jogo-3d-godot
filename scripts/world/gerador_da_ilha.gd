@@ -20,18 +20,21 @@ extends Node3D
 const PASTA_TERRENO := "res://scenes/modules/terrain/"
 const PASTA_PROPS := "res://scenes/modules/props/"
 const PASTA_ILHOTAS := "res://scenes/modules/islets/"
+const PASTA_NUVENS := "res://scenes/modules/clouds/"
 const SHADER_TERRENO_CONTINUO := preload("res://shaders/terreno_continuo.gdshader")
 const SHADER_COSTA_ORGANICA := preload("res://shaders/costa_organica.gdshader")
 
 ## Faixas de relevo montadas pelo build a partir do catalogo do pacote.
 const FAIXAS_GERADAS := "res://scenes/modules/faixas.json"
 
-## Montanhas isoladas usadas como ponto de referencia visual.
-const MARCOS := ["CPT_Mountain_L_e_01", "CPT_Mountain_L_d_02"]
-## Rochas menores espalhadas pelas celulas planas.
-const ROCHAS := ["CPT_Mountain_S_a_01", "CPT_Mountain_S_b_01", "CPT_Mountain_S_c_02"]
-## Ilhotas fundeadas no mar em volta da ilha.
-const ILHOTAS := ["CPT_Island_S_c_01", "CPT_Island_S_c_02", "CPT_Island_S_c_03", "CPT_Island_M_a_02"]
+## Pecas soltas do pacote montadas pelo build: montanhas, ilhas e nuvens.
+## Cada entrada traz a largura e a altura medidas, que sao o que decide se uma
+## montanha vira marco na paisagem, afloramento no meio do campo ou pedra.
+const ACERVO_GERADO := "res://scenes/modules/acervo.json"
+## Largura minima, em metros, para uma montanha valer como marco da paisagem.
+const LARGURA_DE_MARCO := 70.0
+## Abaixo desta largura a peca e tratada como pedra solta.
+const LARGURA_DE_ROCHA := 30.0
 
 @export_group("Formato da ilha")
 ## Raio medio da ilha, contado em modulos de 100x100.
@@ -65,11 +68,17 @@ const ILHOTAS := ["CPT_Island_S_c_01", "CPT_Island_S_c_02", "CPT_Island_S_c_03",
 ## Escala uniforme das grandes montanhas usadas como pontos de referencia.
 @export_range(0.5, 5.0, 0.1) var escala_dos_marcos := 1.0
 ## Quantas montanhas isoladas colocar sobre celulas planas.
-@export_range(0, 8, 1) var quantidade_de_marcos := 1
+@export_range(0, 40, 1) var quantidade_de_marcos := 6
+## Quantos afloramentos de porte medio espalhar pelo campo.
+@export_range(0, 120, 1) var quantidade_de_afloramentos := 24
 ## Quantas rochas menores espalhar.
-@export_range(0, 80, 1) var quantidade_de_rochas := 10
+@export_range(0, 200, 1) var quantidade_de_rochas := 60
 ## Quantas ilhotas fundear no mar.
-@export_range(0, 12, 1) var quantidade_de_ilhotas := 5
+@export_range(0, 60, 1) var quantidade_de_ilhotas := 14
+## Quantas nuvens pousar no ceu.
+@export_range(0, 80, 1) var quantidade_de_nuvens := 28
+## Altura em que as nuvens flutuam, em metros.
+@export_range(60.0, 600.0, 10.0) var altura_das_nuvens := 260.0
 ## Altura das paredes invisiveis que seguram o personagem na ilha.
 @export var altura_do_limite := 60.0
 
@@ -79,6 +88,12 @@ var _celula_de_nascimento := Vector2i.ZERO
 var _aleatorio := RandomNumberGenerator.new()
 var _material_terreno_continuo: ShaderMaterial
 var _faixas: Dictionary = {}
+var _marcos: Array = []
+var _afloramentos: Array = []
+var _rochas: Array = []
+var _ilhotas: Array = []
+var _nuvens: Array = []
+var _material_das_nuvens: StandardMaterial3D
 var _ruido_de_altura_amplo := FastNoiseLite.new()
 var _ruido_de_altura_fino := FastNoiseLite.new()
 
@@ -98,6 +113,7 @@ func gerar() -> void:
 	_configurar_ruido_de_altura()
 
 	_carregar_faixas()
+	_carregar_acervo()
 	_marcar_terra()
 	var raiz_terreno := _novo_grupo("Terreno")
 	var raiz_detalhes := _novo_grupo("Detalhes")
@@ -107,8 +123,12 @@ func gerar() -> void:
 	_montar_terreno(raiz_terreno)
 	_montar_limite()
 	_montar_marcos(raiz_detalhes)
-	_montar_rochas(raiz_detalhes)
+	# Afloramentos de porte medio e pedras pequenas saem do mesmo acervo de
+	# montanhas, separadas pela largura medida no build.
+	_espalhar(raiz_detalhes, _afloramentos, quantidade_de_afloramentos, "Afloramento", 1.0, 1.8, 400)
+	_espalhar(raiz_detalhes, _rochas, quantidade_de_rochas, "Rocha", 1.4, 3.0, 700)
 	_montar_ilhotas(raiz_ilhotas)
+	_montar_nuvens(_novo_grupo("Nuvens"))
 
 
 ## Le as faixas de relevo montadas pelo build. Cada faixa e a lista de modulos
@@ -124,12 +144,48 @@ func _carregar_faixas() -> void:
 		_faixas = dados
 
 
+## Le o acervo de pecas soltas e separa as montanhas por porte. O pacote traz
+## 480 montanhas, de pedras de 8 metros a macicos de 105: usar todas na mesma
+## funcao deixaria pedra do tamanho de morro e morro do tamanho de pedra.
+func _carregar_acervo() -> void:
+	var arquivo := FileAccess.open(ACERVO_GERADO, FileAccess.READ)
+	if arquivo == null:
+		push_error("acervo ausente; rode tools/build_modules.gd antes")
+		return
+	var dados: Variant = JSON.parse_string(arquivo.get_as_text())
+	arquivo.close()
+	if not dados is Dictionary:
+		return
+	_ilhotas = dados.get("ilhotas", [])
+	_nuvens = dados.get("nuvens", [])
+	_marcos.clear()
+	_afloramentos.clear()
+	_rochas.clear()
+	for peca: Dictionary in dados.get("props", []):
+		var largura: float = peca["largura"]
+		if largura >= LARGURA_DE_MARCO:
+			_marcos.append(peca)
+		elif largura >= LARGURA_DE_ROCHA:
+			_afloramentos.append(peca)
+		else:
+			_rochas.append(peca)
+
+
+## Escolhe uma peca do acervo de forma estavel, a partir de um numero de ruido.
+func _sortear(lista: Array, sorte: float) -> String:
+	if lista.is_empty():
+		return ""
+	var indice := int(sorte * float(lista.size())) % lista.size()
+	return (lista[indice] as Dictionary)["nome"]
+
+
 ## Quantos modulos distintos o cenario tem a disposicao.
 func modulos_disponiveis() -> int:
 	var total := 0
 	for faixa: String in _faixas:
 		total += (_faixas[faixa] as Array).size()
-	return total
+	return total + _marcos.size() + _afloramentos.size() + _rochas.size() \
+		+ _ilhotas.size() + _nuvens.size()
 
 
 ## Onde o personagem deve nascer: centro da celula reservada, um pouco acima do
@@ -532,7 +588,9 @@ func _montar_marcos(raiz: Node3D) -> void:
 		indice += maxi(1, candidatas.size() / maxi(quantidade_de_marcos, 1))
 		if celula == _celula_de_nascimento:
 			continue
-		var nome: String = MARCOS[usadas % MARCOS.size()]
+		var nome := _sortear(_marcos, _ruido(celula.x, celula.y, 200 + usadas))
+		if nome == "":
+			break
 		var marco := _cena(PASTA_PROPS, nome).instantiate() as Node3D
 		marco.name = "Marco_%d_%d" % [celula.x, celula.y]
 		marco.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo)
@@ -544,39 +602,81 @@ func _montar_marcos(raiz: Node3D) -> void:
 		usadas += 1
 
 
-func _montar_rochas(raiz: Node3D) -> void:
+## Espalha pecas soltas sobre as celulas planas. Serve tanto para as pedras
+## pequenas quanto para os afloramentos de porte medio: a unica diferenca e a
+## lista de onde as pecas saem e o quanto elas sao ampliadas.
+func _espalhar(raiz: Node3D, lista: Array, quantidade: int, prefixo: String,
+		escala_min: float, escala_max: float, sal: int) -> void:
 	var planas := _celulas_planas()
-	if planas.is_empty():
+	if planas.is_empty() or lista.is_empty():
 		return
-	for i in range(quantidade_de_rochas):
+	for i in range(quantidade):
 		var celula: Vector2i = planas[(i * 7 + 3) % planas.size()]
-		var nome: String = ROCHAS[i % ROCHAS.size()]
+		var nome := _sortear(lista, _ruido(celula.x, celula.y, sal + i * 13))
 		var rocha := _cena(PASTA_PROPS, nome).instantiate() as Node3D
-		rocha.name = "Rocha_%d" % i
+		rocha.name = "%s_%d" % [prefixo, i]
 		var desvio := Vector3(
-			(_ruido(celula.x, celula.y, 10 + i) - 0.5) * tamanho_do_modulo * 0.5,
+			(_ruido(celula.x, celula.y, sal + 10 + i) - 0.5) * tamanho_do_modulo * 0.8,
 			0.0,
-			(_ruido(celula.x, celula.y, 40 + i) - 0.5) * tamanho_do_modulo * 0.5
+			(_ruido(celula.x, celula.y, sal + 40 + i) - 0.5) * tamanho_do_modulo * 0.8
 		)
 		rocha.position = Vector3(celula.x * tamanho_do_modulo, 0.0, celula.y * tamanho_do_modulo) + desvio
 		rocha.position.y = _altura_macro_do_terreno(rocha.position.x, rocha.position.z)
-		rocha.rotation.y = _ruido(celula.x, celula.y, 70 + i) * TAU
-		# Rochas maiores que o tamanho original: nas planicies de 100 m elas
-		# so viram ponto de referencia se derem para ver de longe.
-		var escala := (1.6 + _ruido(celula.x, celula.y, 90 + i) * 1.6) * (tamanho_do_modulo / 100.0)
+		rocha.rotation.y = _ruido(celula.x, celula.y, sal + 70 + i) * TAU
+		var faixa_de_escala := escala_max - escala_min
+		var escala := (escala_min + _ruido(celula.x, celula.y, sal + 90 + i) * faixa_de_escala) \
+			* (tamanho_do_modulo / 100.0)
 		rocha.scale = Vector3(escala, escala, escala)
 		_aplicar_material_continuo(rocha)
 		raiz.add_child(rocha)
 
 
+## Nuvens pousadas em anel no ceu. Nao levam o material do terreno: naquela
+## altura ele as pintaria de rocha.
+func _montar_nuvens(raiz: Node3D) -> void:
+	if _nuvens.is_empty():
+		return
+	if _material_das_nuvens == null:
+		_material_das_nuvens = StandardMaterial3D.new()
+		_material_das_nuvens.albedo_color = Color(1.0, 1.0, 1.0)
+		_material_das_nuvens.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		_material_das_nuvens.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		_material_das_nuvens.albedo_color.a = 0.85
+	var raio := raio_em_metros()
+	for i in range(quantidade_de_nuvens):
+		var nome := _sortear(_nuvens, _ruido(i, i * 3, 900))
+		var nuvem := _cena(PASTA_NUVENS, nome).instantiate() as Node3D
+		nuvem.name = "Nuvem_%d" % i
+		var angulo := TAU * _ruido(i, i * 5, 910)
+		var distancia := raio * (0.15 + _ruido(i, i * 7, 920) * 1.1)
+		nuvem.position = Vector3(
+			cos(angulo) * distancia,
+			altura_das_nuvens + _ruido(i, i * 11, 930) * 90.0,
+			sin(angulo) * distancia
+		)
+		nuvem.rotation.y = _ruido(i, i * 13, 940) * TAU
+		var escala := 3.0 + _ruido(i, i * 17, 950) * 5.0
+		nuvem.scale = Vector3(escala, escala * 0.6, escala)
+		for filho: Node in nuvem.get_children():
+			if filho is MeshInstance3D:
+				(filho as MeshInstance3D).material_override = _material_das_nuvens
+				(filho as MeshInstance3D).cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		raiz.add_child(nuvem)
+
+
 func _montar_ilhotas(raiz: Node3D) -> void:
 	var raio := raio_em_metros()
 	for i in range(quantidade_de_ilhotas):
-		var nome: String = ILHOTAS[i % ILHOTAS.size()]
+		var nome := _sortear(_ilhotas, _ruido(i, i * 3, 800))
+		if nome == "":
+			break
 		var ilhota := _cena(PASTA_ILHOTAS, nome).instantiate() as Node3D
 		ilhota.name = "Ilhota_%d" % i
 		var angulo := TAU * (float(i) / maxf(float(quantidade_de_ilhotas), 1.0)) + 0.6
 		var distancia := raio + 180.0 + _ruido(i, i * 3, 200) * 320.0
 		ilhota.position = Vector3(cos(angulo) * distancia, 0.0, sin(angulo) * distancia)
 		ilhota.rotation.y = _ruido(i, i * 5, 300) * TAU
+		# Sem isto as ilhotas ficam brancas: elas nao passam pelo mesmo caminho
+		# do terreno, entao precisam receber o material continuo aqui.
+		_aplicar_material_continuo(ilhota)
 		raiz.add_child(ilhota)

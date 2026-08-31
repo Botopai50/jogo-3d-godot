@@ -18,20 +18,24 @@ const CATALOGO := "res://assets/grid/catalogo.json"
 const DIR_MALHAS := "res://scenes/modules/malhas"
 const DIR_FAIXAS := "res://scenes/modules/faixas.json"
 
+const DIR_ACERVO := "res://scenes/modules/acervo.json"
+
 ## Pastas de destino por tipo de peca.
 const DESTINOS := {
 	"terreno": "res://scenes/modules/terrain",
 	"props": "res://scenes/modules/props",
 	"ilhotas": "res://scenes/modules/islets",
+	"nuvens": "res://scenes/modules/clouds",
 }
 
-## Montanhas isoladas e rochas usadas como ponto de referencia visual.
-const PROPS := [
-	"CPT_Mountain_L_e_01", "CPT_Mountain_L_d_02",
-	"CPT_Mountain_S_a_01", "CPT_Mountain_S_b_01", "CPT_Mountain_S_c_02",
-]
-## Ilhotas fundeadas no mar em volta da ilha.
-const ILHOTAS := ["CPT_Island_S_c_01", "CPT_Island_S_c_02", "CPT_Island_S_c_03", "CPT_Island_M_a_02"]
+## Categoria do pacote que alimenta cada tipo de peca solta. Elas nao encaixam
+## na grade: sao pousadas sobre o terreno, no mar ou no ceu, entao entram todas
+## as variantes que nao sao copia de LOD.
+const CATEGORIAS_SOLTAS := {
+	"props": "Mountains",
+	"ilhotas": "Islands",
+	"nuvens": "Clouds",
+}
 
 
 func ler_catalogo() -> Array:
@@ -101,13 +105,7 @@ func construir(entrada: Dictionary, destino: String, recentrar: bool) -> bool:
 
 		# A malha vem embutida no .fbx importado. Salva-la como recurso binario
 		# proprio mantem a cena de modulo pequena e legivel em texto.
-		var copia: ArrayMesh = (malhas[i]["malha"] as Mesh).duplicate(true)
-		# O material que veio do .fbx aponta para o atlas guardado ao lado do
-		# arquivo de origem, e essas texturas ficam de fora do build. Como o
-		# cenario pinta tudo com o shader continuo, o material embutido so
-		# deixaria uma referencia quebrada em tempo de execucao.
-		for si in range(copia.get_surface_count()):
-			copia.surface_set_material(si, null)
+		var copia := _malha_enxuta(malhas[i]["malha"] as Mesh)
 		var caminho_malha := "%s/%s%s.res" % [DIR_MALHAS, nome, sufixo]
 		var err := ResourceSaver.save(copia, caminho_malha)
 		if err != OK:
@@ -138,6 +136,27 @@ func construir(entrada: Dictionary, destino: String, recentrar: bool) -> bool:
 	return true
 
 
+## Copia a malha guardando so o que o jogo usa: posicao, normal e indices.
+##
+## O material que veio do .fbx aponta para o atlas guardado ao lado do arquivo
+## de origem, e essas texturas ficam fora do build; como o cenario pinta tudo
+## com o shader continuo, o material e as coordenadas de textura nao sao lidos
+## por ninguem. Descartar as UV corta cerca de um quarto do tamanho de cada
+## malha. Os .fbx originais continuam no projeto com tudo, entao voltar atras e
+## so reassar.
+func _malha_enxuta(origem: Mesh) -> ArrayMesh:
+	var enxuta := ArrayMesh.new()
+	for si in range(origem.get_surface_count()):
+		var antigo: Array = origem.surface_get_arrays(si)
+		var novo: Array = []
+		novo.resize(Mesh.ARRAY_MAX)
+		novo[Mesh.ARRAY_VERTEX] = antigo[Mesh.ARRAY_VERTEX]
+		novo[Mesh.ARRAY_NORMAL] = antigo[Mesh.ARRAY_NORMAL]
+		novo[Mesh.ARRAY_INDEX] = antigo[Mesh.ARRAY_INDEX]
+		enxuta.add_surface_from_arrays(origem.surface_get_primitive_type(si), novo)
+	return enxuta
+
+
 ## Faixa de relevo de um modulo, pela altura maxima medida no catalogo.
 func faixa_de(entrada: Dictionary) -> String:
 	var altura: float = entrada["y_max"]
@@ -161,10 +180,6 @@ func _init() -> void:
 		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(destino))
 	DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path(DIR_MALHAS))
 
-	var por_nome := {}
-	for entrada: Dictionary in catalogo:
-		por_nome[entrada["nome"]] = entrada
-
 	# Terreno: tudo que encaixa na grade de 100 metros, nao e copia de LOD e nao
 	# afunda. Boa parte do pacote sao bacias que virariam pocos alagados.
 	var terreno: Array = []
@@ -186,26 +201,54 @@ func _init() -> void:
 		else:
 			falhas += 1
 
-	for lista_nome: String in ["props", "ilhotas"]:
-		var nomes: Array = PROPS if lista_nome == "props" else ILHOTAS
-		for nome: String in nomes:
-			if not por_nome.has(nome):
-				push_error("modulo ausente no catalogo: " + nome)
-				falhas += 1
+	# Montanhas, ilhas e nuvens nao encaixam na grade: sao pousadas sobre o
+	# terreno, no mar e no ceu. Entram todas, menos as copias de LOD. O gerador
+	# escolhe cada peca pela largura e pela altura registradas no acervo.
+	var acervo := {}
+	for tipo: String in CATEGORIAS_SOLTAS:
+		var categoria: String = CATEGORIAS_SOLTAS[tipo]
+		var lista: Array = []
+		for entrada: Dictionary in catalogo:
+			if entrada["categoria"] != categoria or entrada["lod"]:
 				continue
-			if not construir(por_nome[nome], DESTINOS[lista_nome], true):
+			# As ilhas "H" sao massas de 445 metros com quase 10 mil triangulos
+			# cada: foram feitas para ser a ilha principal, nao enfeite no
+			# horizonte. As 47 sozinhas pesariam mais que todo o terreno.
+			if categoria == "Islands" and "_H_" in String(entrada["nome"]):
+				continue
+			lista.append(entrada)
+		lista.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a["nome"] < b["nome"])
+		var registradas: Array = []
+		for entrada: Dictionary in lista:
+			if construir(entrada, DESTINOS[tipo], true):
+				registradas.append({
+					"nome": entrada["nome"],
+					"largura": entrada["largura"],
+					"y_min": entrada["y_min"],
+					"y_max": entrada["y_max"],
+				})
+			else:
 				falhas += 1
+		acervo[tipo] = registradas
 
-	var arquivo := FileAccess.open(DIR_FAIXAS, FileAccess.WRITE)
-	if arquivo == null:
-		push_error("nao consegui escrever " + DIR_FAIXAS)
+	if not _salvar_json(DIR_FAIXAS, faixas) or not _salvar_json(DIR_ACERVO, acervo):
 		quit(1)
 		return
-	arquivo.store_string(JSON.stringify(faixas, "  "))
-	arquivo.close()
 
 	print("modulos de terreno no build: %d" % terreno.size())
 	for faixa: String in faixas:
 		print("  %-10s %d" % [faixa, (faixas[faixa] as Array).size()])
-	print("props: %d | ilhotas: %d | falhas: %d" % [PROPS.size(), ILHOTAS.size(), falhas])
+	for tipo: String in acervo:
+		print("%-10s %d" % [tipo + ":", (acervo[tipo] as Array).size()])
+	print("falhas: %d" % falhas)
 	quit(0 if falhas == 0 else 1)
+
+
+func _salvar_json(caminho: String, dados: Variant) -> bool:
+	var arquivo := FileAccess.open(caminho, FileAccess.WRITE)
+	if arquivo == null:
+		push_error("nao consegui escrever " + caminho)
+		return false
+	arquivo.store_string(JSON.stringify(dados, "  "))
+	arquivo.close()
+	return true
