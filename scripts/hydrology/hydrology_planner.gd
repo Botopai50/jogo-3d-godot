@@ -12,7 +12,7 @@ var errors := PackedStringArray()
 # Os modulos CPT de rio usam o topo do solo em y = 0 e escavam o canal para
 # baixo. A lamina fica dentro dessa escavacao: acima do fundo, mas abaixo do
 # solo seco, que naturalmente esconde as partes do plano fora do canal.
-const WATER_LEVEL_OFFSET := -0.75
+const WATER_LEVEL_OFFSET := -0.85
 
 
 func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
