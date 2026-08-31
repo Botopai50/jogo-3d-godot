@@ -17,6 +17,13 @@ func _init() -> void:
 	var manager: Node = scene.manager
 	var mesh := manager.get_node_or_null("WaterGeometry") as MeshInstance3D
 	_check(mesh != null and mesh.mesh != null, "geometria independente foi criada")
+	var full_tile_planes := true
+	for tile: WaterTileData in manager.tiles.values():
+		var half: float = tile.tile_size * 0.5
+		full_tile_planes = full_tile_planes and tile.water_mask.size() == 4
+		full_tile_planes = full_tile_planes and tile.water_mask.has(Vector2(-half, -half))
+		full_tile_planes = full_tile_planes and tile.water_mask.has(Vector2(half, half))
+	_check(full_tile_planes, "cada modulo usa uma lamina de agua do tamanho inteiro do tile")
 	print("falhas de hidrologia: %d" % failures)
 	quit(failures)
 

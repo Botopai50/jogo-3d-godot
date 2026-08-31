@@ -9,6 +9,11 @@ var tiles: Array[WaterTileData] = []
 var path_cells: Array[Vector2i] = []
 var errors := PackedStringArray()
 
+# Os modulos CPT de rio usam o topo do solo em y = 0 e escavam o canal para
+# baixo. A lamina fica dentro dessa escavacao: acima do fundo, mas abaixo do
+# solo seco, que naturalmente esconde as partes do plano fora do canal.
+const WATER_LEVEL_BELOW_GROUND := 0.05
+
 
 func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		catalog_path: String, seed: int) -> void:
@@ -44,15 +49,9 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		tile.rotation_quarters = int(asset["rotation"])
 		tile.river_width = tile_size * 0.14
 		tile.water_type = WaterTileData.WaterType.LAKE if index == lake_index else WaterTileData.WaterType.RIVER
-		var center_world := Vector3(float(cell.x) * tile_size, 0.0, float(cell.y) * tile_size)
-		var base_height := float(height_sampler.call(center_world.x, center_world.z))
-		# Perfil amplo e deterministico: nao copia irregularidades do fundo.
-		var progress := float(index) / float(path_cells.size() - 1)
-		tile.water_height = lerpf(
-			float(height_sampler.call(float(source.x) * tile_size, float(source.y) * tile_size)) + 0.6,
-			0.35, progress)
-		if tile.water_type == WaterTileData.WaterType.LAKE:
-			tile.water_height += 4.5
+		# A peca hidrologica e posicionada em y = 0. Nao usamos a altura macro
+		# do terreno comum aqui, pois o proprio modelo CPT contem a depressao.
+		tile.water_height = -WATER_LEVEL_BELOW_GROUND * (tile_size / 100.0)
 		if entry >= 0:
 			_add_socket(tile, entry, -tile.river_width * 0.05, tile.water_height,
 				RiverConnection.Kind.RIVER)
@@ -218,11 +217,4 @@ func _build_river_controls_and_mask(tile: WaterTileData) -> void:
 
 
 func _build_lake_mask(tile: WaterTileData) -> void:
-	var radius := tile.tile_size * 0.36
-	tile.water_mask.clear()
-	for i in range(64):
-		var angle := TAU * float(i) / 64.0
-		tile.water_mask.append(Vector2(cos(angle), sin(angle)) * radius)
 	_build_river_controls_and_mask(tile)
-	# build_default_mask de lago restaura uma mascara plana fechada.
-	tile.build_default_mask()

@@ -41,10 +41,8 @@ func build_mesh(tiles: Array[WaterTileData], paths: Array[RiverPath]) -> ArrayMe
 	var vertices := PackedVector3Array()
 	var normals := PackedVector3Array()
 	var indices := PackedInt32Array()
-	for path in paths:
-		add_river(path.smoothed(), vertices, normals, indices)
 	for tile in tiles:
-		if tile.water_type == WaterTileData.WaterType.LAKE:
+		if tile.water_type != WaterTileData.WaterType.NONE:
 			add_lake(tile, vertices, normals, indices)
 	var mesh := ArrayMesh.new()
 	if vertices.is_empty():

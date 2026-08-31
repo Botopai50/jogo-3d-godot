@@ -39,12 +39,11 @@ func world_position(connection: RiverConnection) -> Vector3:
 
 func build_default_mask() -> void:
 	water_mask.clear()
-	if water_type == WaterType.LAKE:
-		var radius := tile_size * 0.38
-		for i in range(48):
-			var angle := TAU * float(i) / 48.0
-			water_mask.append(Vector2(cos(angle), sin(angle)) * radius)
-	elif water_type == WaterType.RIVER and not control_points.is_empty():
-		# A linha central mais a largura e a mascara procedural do tile.
-		for point in control_points:
-			water_mask.append(Vector2(point.x, point.z))
+	if water_type == WaterType.NONE:
+		return
+	# A agua cobre todo o tile. O relevo do modulo, que esta acima desta
+	# lamina fora das depressoes, funciona como a mascara visual natural.
+	var half := tile_size * 0.5
+	water_mask.append_array([
+		Vector2(-half, -half), Vector2(half, -half),
+		Vector2(half, half), Vector2(-half, half)])
