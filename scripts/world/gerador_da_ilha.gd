@@ -1342,7 +1342,7 @@ func _grade_de_altura(celula: Vector2i, lado_da_grade: int) -> PackedFloat32Arra
 	var canto := Vector2(
 		float(celula.x) * tamanho_do_modulo - tamanho_do_modulo * 0.5,
 		float(celula.y) * tamanho_do_modulo - tamanho_do_modulo * 0.5)
-	var passo := tamanho_do_modulo / float(lado_da_grade)
+	var passo := tamanho_do_modulo / float(lado_da_grade - 1)
 
 	for t in range(0, indices.size(), 3):
 		var a: Vector3 = para_o_mundo * vertices[indices[t]]
@@ -1357,8 +1357,8 @@ func _grade_de_altura(celula: Vector2i, lado_da_grade: int) -> PackedFloat32Arra
 			continue
 		for gz in range(z0, z1 + 1):
 			for gx in range(x0, x1 + 1):
-				var px := canto.x + (float(gx) + 0.5) * passo
-				var pz := canto.y + (float(gz) + 0.5) * passo
+				var px := canto.x + float(gx) * passo
+				var pz := canto.y + float(gz) * passo
 				var beta := ((px - a.x) * (c.z - a.z) - (c.x - a.x) * (pz - a.z)) / denominador
 				var gama := ((b.x - a.x) * (pz - a.z) - (px - a.x) * (b.z - a.z)) / denominador
 				if beta < -0.001 or gama < -0.001 or beta + gama > 1.001:
@@ -1416,7 +1416,7 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 		normais: PackedVector3Array, indices: PackedInt32Array,
 		grades: Dictionary, niveis: Dictionary, lado_da_grade: int) -> void:
 	var largura := maxf(tamanho_do_modulo * largura_da_agua_do_rio, 6.0)
-	var passo := tamanho_do_modulo / float(lado_da_grade)
+	var passo := tamanho_do_modulo / float(lado_da_grade - 1)
 	var saida_anterior: Variant = null
 	for item: Dictionary in _pecas_escolhidas:
 		if item["tipo"] != "rio":
@@ -1427,10 +1427,12 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 			celula.y * tamanho_do_modulo)
 		var entrada := centro + _ponto_no_mundo(
 			int(escolha["borda_entrada"]), float(escolha["fracao_entrada"]))
+		entrada.y = _altura_do_chao(entrada.x, entrada.z) + 0.4
 		var saida: Vector3
 		if int(escolha["borda_saida"]) >= 0:
 			saida = centro + _ponto_no_mundo(
 				int(escolha["borda_saida"]), float(escolha["fracao_saida"]))
+			saida.y = _altura_do_chao(saida.x, saida.z) + 0.4
 		else:
 			# A nascente termina no ponto ja inundado mais proximo da entrada.
 			# Mirar o ponto mais fundo fazia a faixa atravessar um ressalto seco
@@ -1445,9 +1447,9 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 				var tx := i % lado_da_grade
 				var tz := i / lado_da_grade
 				var candidato := centro + Vector3(
-					(float(tx) + 0.5) * passo - tamanho_do_modulo * 0.5,
+					float(tx) * passo - tamanho_do_modulo * 0.5,
 					0.0,
-					(float(tz) + 0.5) * passo - tamanho_do_modulo * 0.5)
+					float(tz) * passo - tamanho_do_modulo * 0.5)
 				var distancia := Vector2(candidato.x - entrada.x,
 					candidato.z - entrada.z).length_squared()
 				if distancia < menor_distancia:
@@ -1458,9 +1460,9 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 			var gx := menor_indice % lado_da_grade
 			var gz := menor_indice / lado_da_grade
 			saida = centro + Vector3(
-				(float(gx) + 0.5) * passo - tamanho_do_modulo * 0.5,
+				float(gx) * passo - tamanho_do_modulo * 0.5,
 				0.0,
-				(float(gz) + 0.5) * passo - tamanho_do_modulo * 0.5)
+				float(gz) * passo - tamanho_do_modulo * 0.5)
 
 		var pontos: Array[Vector3] = []
 		if saida_anterior != null:
@@ -1500,7 +1502,10 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 		for i in range(pontos.size() - 1):
 			var a := inicio + i * 2
 			indices.append_array([a, a + 3, a + 1, a, a + 2, a + 3])
-		saida_anterior = saida
+		# Guarda o ultimo ponto ja assentado sobre o terreno. A versao anterior
+		# guardava `saida` ainda com Y=0; a ligacao seguinte mergulhava sob a
+		# ilha e abria um trecho seco exatamente na divisa entre os modulos.
+		saida_anterior = pontos[pontos.size() - 1]
 
 
 ## Enche a depressao de cada peca ate o nivel da celula.
@@ -1508,6 +1513,42 @@ func _adicionar_curso_continuo(vertices: PackedVector3Array,
 ## A agua deixa de ser uma fita de largura fixa ao longo do leito: ela ocupa
 ## exatamente o que a peca escavou. Era a fita que deixava a peca de nascente
 ## seca, porque o poco dela e largo demais para uma faixa.
+func _recortar_triangulo_na_margem(pontos: Array[Vector2], alturas: Array[float],
+		nivel: float) -> Array[Vector2]:
+	var resultado: Array[Vector2] = []
+	var limite := nivel - 0.02
+	var ponto_anterior := pontos[pontos.size() - 1]
+	var altura_anterior := alturas[alturas.size() - 1]
+	var anterior_dentro := altura_anterior < limite
+	for i in range(pontos.size()):
+		var ponto_atual := pontos[i]
+		var altura_atual := alturas[i]
+		var atual_dentro := altura_atual < limite
+		if atual_dentro != anterior_dentro:
+			var t := clampf((limite - altura_anterior) /
+				(altura_atual - altura_anterior), 0.0, 1.0)
+			resultado.append(ponto_anterior.lerp(ponto_atual, t))
+		if atual_dentro:
+			resultado.append(ponto_atual)
+		ponto_anterior = ponto_atual
+		altura_anterior = altura_atual
+		anterior_dentro = atual_dentro
+	return resultado
+
+
+func _adicionar_poligono_de_agua(poligono: Array[Vector2], nivel: float,
+		vertices: PackedVector3Array, normais: PackedVector3Array,
+		indices: PackedInt32Array) -> void:
+	if poligono.size() < 3:
+		return
+	var inicio := vertices.size()
+	for ponto in poligono:
+		vertices.append(Vector3(ponto.x, nivel, ponto.y))
+		normais.append(Vector3.UP)
+	for i in range(1, poligono.size() - 1):
+		indices.append_array([inicio, inicio + i + 1, inicio + i])
+
+
 func _montar_laminas(raiz: Node3D) -> void:
 	# A grade antiga de 26x26 gerava degraus de quase cinco metros e deixava a
 	# margem com aspecto quebrado. Em 128x128 cada amostra fica abaixo de um metro.
@@ -1517,8 +1558,13 @@ func _montar_laminas(raiz: Node3D) -> void:
 		grades[celula] = _grade_de_altura(celula, lado_da_grade)
 	var niveis := _niveis_da_agua(grades)
 
-	var por_tipo := {"rio": [], "lago": []}
-	var passo := tamanho_do_modulo / float(lado_da_grade)
+	var por_tipo := {
+		"rio": {"vertices": PackedVector3Array(), "normais": PackedVector3Array(),
+			"indices": PackedInt32Array()},
+		"lago": {"vertices": PackedVector3Array(), "normais": PackedVector3Array(),
+			"indices": PackedInt32Array()},
+	}
+	var passo := tamanho_do_modulo / float(lado_da_grade - 1)
 	for celula: Vector2i in _celulas_de_agua.keys():
 		if not niveis.has(celula):
 			continue
@@ -1527,33 +1573,51 @@ func _montar_laminas(raiz: Node3D) -> void:
 		var canto := Vector2(
 			float(celula.x) * tamanho_do_modulo - tamanho_do_modulo * 0.5,
 			float(celula.y) * tamanho_do_modulo - tamanho_do_modulo * 0.5)
-		var lista: Array = por_tipo[_celulas_de_agua[celula]["tipo"]]
-		for gz in range(lado_da_grade):
-			for gx in range(lado_da_grade):
-				var altura: float = grade[gz * lado_da_grade + gx]
-				if altura == INF or altura >= nivel - 0.02:
+		var tipo: String = _celulas_de_agua[celula]["tipo"]
+		var dados: Dictionary = por_tipo[tipo]
+		var vertices: PackedVector3Array = dados["vertices"]
+		var normais: PackedVector3Array = dados["normais"]
+		var indices: PackedInt32Array = dados["indices"]
+		# Cada quadrado da grade e dividido nos mesmos dois triangulos. Cada
+		# triangulo e recortado exatamente onde a altura cruza o nivel da agua;
+		# assim a margem deixa de ser uma escada de quadrados inteiros.
+		for gz in range(lado_da_grade - 1):
+			for gx in range(lado_da_grade - 1):
+				var i00 := gz * lado_da_grade + gx
+				var i10 := i00 + 1
+				var i01 := i00 + lado_da_grade
+				var i11 := i01 + 1
+				var h00: float = grade[i00]
+				var h10: float = grade[i10]
+				var h01: float = grade[i01]
+				var h11: float = grade[i11]
+				if h00 == INF or h10 == INF or h01 == INF or h11 == INF:
 					continue
-				var px := canto.x + float(gx) * passo
-				var pz := canto.y + float(gz) * passo
-				lista.append(Rect2(px, pz, passo, nivel))
+				var x0 := canto.x + float(gx) * passo
+				var x1 := x0 + passo
+				var z0 := canto.y + float(gz) * passo
+				var z1 := z0 + passo
+				var p00 := Vector2(x0, z0)
+				var p10 := Vector2(x1, z0)
+				var p01 := Vector2(x0, z1)
+				var p11 := Vector2(x1, z1)
+				var a := _recortar_triangulo_na_margem(
+					[p00, p10, p11], [h00, h10, h11], nivel)
+				var b := _recortar_triangulo_na_margem(
+					[p00, p11, p01], [h00, h11, h01], nivel)
+				_adicionar_poligono_de_agua(a, nivel, vertices, normais, indices)
+				_adicionar_poligono_de_agua(b, nivel, vertices, normais, indices)
+		dados["vertices"] = vertices
+		dados["normais"] = normais
+		dados["indices"] = indices
 
 	for tipo: String in por_tipo:
-		var quadros: Array = por_tipo[tipo]
-		if quadros.is_empty():
+		var dados: Dictionary = por_tipo[tipo]
+		var vertices: PackedVector3Array = dados["vertices"]
+		var normais: PackedVector3Array = dados["normais"]
+		var indices: PackedInt32Array = dados["indices"]
+		if vertices.is_empty():
 			continue
-		var vertices := PackedVector3Array()
-		var normais := PackedVector3Array()
-		var indices := PackedInt32Array()
-		for q: Rect2 in quadros:
-			var y: float = q.size.y
-			var b := vertices.size()
-			vertices.append(Vector3(q.position.x, y, q.position.y))
-			vertices.append(Vector3(q.position.x + q.size.x, y, q.position.y))
-			vertices.append(Vector3(q.position.x + q.size.x, y, q.position.y + q.size.x))
-			vertices.append(Vector3(q.position.x, y, q.position.y + q.size.x))
-			for _k in range(4):
-				normais.append(Vector3.UP)
-			indices.append_array([b, b + 2, b + 1, b, b + 3, b + 2])
 		if tipo == "rio":
 			_adicionar_curso_continuo(vertices, normais, indices, grades, niveis, lado_da_grade)
 		var malha := ArrayMesh.new()
