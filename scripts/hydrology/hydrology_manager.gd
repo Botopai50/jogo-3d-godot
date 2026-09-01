@@ -70,10 +70,28 @@ func _harmonize_shared_connections() -> void:
 				continue
 			var shared_height := (connection.height + other.height) * 0.5
 			var shared_width := (connection.width + other.width) * 0.5
+			if connection.side in [RiverConnection.Side.EAST, RiverConnection.Side.WEST]:
+				var shared_axis := (connection.local_position.y + other.local_position.y) * 0.5
+				connection.local_position.y = shared_axis
+				other.local_position.y = shared_axis
+			else:
+				var shared_axis := (connection.local_position.x + other.local_position.x) * 0.5
+				connection.local_position.x = shared_axis
+				other.local_position.x = shared_axis
 			connection.height = shared_height
 			other.height = shared_height
 			connection.width = shared_width
 			other.width = shared_width
+	for tile: WaterTileData in tiles.values():
+		tile.control_points.clear()
+		for connection: RiverConnection in tile.river_connections:
+			tile.control_points.append(Vector3(connection.local_position.x,
+				connection.height, connection.local_position.y))
+		if tile.control_points.size() == 1:
+			tile.control_points.append(Vector3(0.0, tile.water_height, 0.0))
+		elif tile.control_points.size() >= 2:
+			tile.control_points.insert(1, Vector3(0.0, tile.water_height, 0.0))
+		tile.build_default_mask()
 
 
 func build_paths() -> void:

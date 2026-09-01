@@ -22,6 +22,9 @@ const PASTA_PROPS := "res://scenes/modules/props/"
 const PASTA_ILHOTAS := "res://scenes/modules/islets/"
 const PASTA_NUVENS := "res://scenes/modules/clouds/"
 const PASTA_RIO := "res://scenes/modules/river/"
+const ILHA_PRINCIPAL_CPT := "res://assets/grid/terrain_assets/Islands/CPT/NoLOD/H/CPT_Island_H_b_04.fbx"
+const PASTA_COSTA_CPT := "res://assets/grid/terrain_assets/Islands/CPT/NoLOD/M/"
+const DIAMETRO_ORIGINAL_DA_ILHA_CPT := 397.6
 const SHADER_TERRENO_CONTINUO := preload("res://shaders/terreno_continuo.gdshader")
 const SHADER_COSTA_ORGANICA := preload("res://shaders/costa_organica.gdshader")
 const HYDROLOGY_MANAGER := preload("res://scripts/hydrology/hydrology_manager.gd")
@@ -111,6 +114,7 @@ var _celulas: Dictionary = {}
 var _celula_de_nascimento := Vector2i.ZERO
 var _aleatorio := RandomNumberGenerator.new()
 var _material_terreno_continuo: ShaderMaterial
+var _material_costa_cpt: ShaderMaterial
 var _faixas: Dictionary = {}
 var _marcos: Array = []
 var _afloramentos: Array = []
@@ -131,6 +135,9 @@ var _superficie_da_celula: Dictionary = {}
 var _ruido_de_altura_amplo := FastNoiseLite.new()
 var _ruido_de_altura_fino := FastNoiseLite.new()
 var _hydrology: HydrologyManager
+var _contorno_cpt := PackedVector2Array()
+var _centro_original_cpt := Vector2.ZERO
+var _escala_horizontal_cpt := 1.0
 
 
 func _ready() -> void:
@@ -153,6 +160,9 @@ func gerar() -> void:
 	_lago_pronto = false
 	_aleatorio.seed = semente
 	_configurar_ruido_de_altura()
+	# A costa agora e composta por varias CPT_Island M. O grid volta a usar o
+	# contorno procedural continuo em vez do casco de uma unica ilha ampliada.
+	_contorno_cpt.clear()
 
 	_carregar_faixas()
 	_carregar_acervo()
@@ -170,7 +180,7 @@ func gerar() -> void:
 	var raiz_detalhes := _novo_grupo("Detalhes")
 	var raiz_ilhotas := _novo_grupo("Ilhotas")
 
-	_montar_base_organica()
+	_montar_costa_modular_cpt()
 	_montar_terreno(raiz_terreno)
 	if gerar_rio:
 		_montar_modulos_do_rio(_novo_grupo("Rio"))
@@ -407,6 +417,17 @@ func _aplicar_material_continuo(raiz: Node) -> void:
 		_aplicar_material_continuo(filho)
 
 
+func _aplicar_material_suave_da_costa(raiz: Node) -> void:
+	if _material_costa_cpt == null:
+		_material_costa_cpt = ShaderMaterial.new()
+		_material_costa_cpt.shader = SHADER_TERRENO_CONTINUO
+		_material_costa_cpt.set_shader_parameter("suavizar_normais", 1.0)
+	if raiz is MeshInstance3D:
+		(raiz as MeshInstance3D).material_override = _material_costa_cpt
+	for filho in raiz.get_children():
+		_aplicar_material_suave_da_costa(filho)
+
+
 ## Ruido barato e estavel por celula, no lugar de uma textura de ruido.
 func _ruido(gx: int, gz: int, sal: int) -> float:
 	var n := sin(float(gx) * 12.9898 + float(gz) * 78.233 + float(sal + semente) * 0.137) * 43758.5453
@@ -435,6 +456,16 @@ func _modulo_cabe_na_ilha(gx: int, gz: int) -> bool:
 			Vector2(0.5, 0.5), Vector2(-0.5, 0.5)]
 	for canto: Vector2 in cantos:
 		var ponto: Vector2 = Vector2(float(gx), float(gz)) + canto
+		if not _contorno_cpt.is_empty():
+			# Mantem o ultimo anel quadrado bem para dentro da malha costeira.
+			# Assim e a geometria irregular do CPT, e nao o grid, que aparece na
+			# silhueta vista de cima.
+			var ponto_em_metros := ponto * tamanho_do_modulo
+			if not ponto.is_zero_approx():
+				ponto_em_metros += ponto.normalized() * largura_da_costa * 0.55
+			if not Geometry2D.is_point_in_polygon(ponto_em_metros, _contorno_cpt):
+				return false
+			continue
 		if ponto.length() + recuo > _raio_na_direcao(ponto.x, ponto.y):
 			return false
 	return true
@@ -611,6 +642,86 @@ func _montar_base_organica() -> void:
 	colisao.name = "Colisao"
 	colisao.shape = malha.create_trimesh_shape()
 	corpo.add_child(colisao)
+
+
+## Costa formada por varias pecas CPT_Island_M em escala modular. O grid cobre
+## o interior e a sobreposicao das ilhas menores desenha a margem.
+func _montar_costa_modular_cpt() -> void:
+	# Uma malha continua rasa fecha apenas as pequenas frestas entre as pecas;
+	# quem desenha visualmente a margem sao os modulos CPT abaixo.
+	_montar_base_organica()
+	var costa := Node3D.new()
+	costa.name = "CostaModularCPT"
+	add_child(costa)
+	var arquivos := PackedStringArray()
+	for arquivo in DirAccess.get_files_at(PASTA_COSTA_CPT):
+		if arquivo.ends_with(".fbx"):
+			arquivos.append(PASTA_COSTA_CPT + arquivo)
+	if arquivos.is_empty():
+		push_error("modulos CPT Island M nao encontrados")
+		return
+	# O espacamento fica menor que a largura das pecas M para elas se
+	# sobreporem suavemente, sem buracos nem quadrados expostos ao oceano.
+	var quantidade := maxi(28, int(ceil(TAU * raio_em_metros() / 210.0)))
+	for i in range(quantidade):
+		var angulo := TAU * float(i) / float(quantidade)
+		var direcao := Vector2(cos(angulo), sin(angulo))
+		var raio := _raio_na_direcao(direcao.x, direcao.y) * tamanho_do_modulo
+		var cena := load(arquivos[(i * 7 + semente) % arquivos.size()]) as PackedScene
+		if cena == null:
+			continue
+		var peca := cena.instantiate() as Node3D
+		peca.name = "Costa_%02d" % i
+		# M mede aproximadamente 200 m. Uma leve sobreposicao cria enseadas e
+		# cabos arredondados sem esticar os triangulos do asset.
+		var escala := tamanho_do_modulo / 100.0
+		peca.scale = Vector3(escala, 1.0, escala)
+		peca.rotation.y = -angulo + PI * 0.5
+		peca.position = Vector3(direcao.x * (raio - tamanho_do_modulo * 0.55),
+			-0.45, direcao.y * (raio - tamanho_do_modulo * 0.55))
+		_aplicar_material_suave_da_costa(peca)
+		costa.add_child(peca)
+
+
+## Extrai o casco da propria malha CPT e o converte para coordenadas do mundo.
+## A mesma transformacao e aplicada ao visual em _montar_costa_modular_cpt.
+func _preparar_contorno_cpt() -> void:
+	_contorno_cpt.clear()
+	var cena := load(ILHA_PRINCIPAL_CPT) as PackedScene
+	if cena == null:
+		return
+	var raiz := cena.instantiate()
+	var pontos := PackedVector2Array()
+	var pilha: Array = [{"no": raiz, "transformada": Transform3D.IDENTITY}]
+	while not pilha.is_empty():
+		var item: Dictionary = pilha.pop_back()
+		var no: Node = item["no"]
+		var transformada: Transform3D = item["transformada"]
+		if no is Node3D:
+			transformada = transformada * (no as Node3D).transform
+		if no is MeshInstance3D and (no as MeshInstance3D).mesh != null:
+			var malha := (no as MeshInstance3D).mesh
+			for superficie in range(malha.get_surface_count()):
+				var vertices: PackedVector3Array = malha.surface_get_arrays(superficie)[Mesh.ARRAY_VERTEX]
+				for vertice in vertices:
+					var p: Vector3 = transformada * vertice
+					pontos.append(Vector2(p.x, p.z))
+		for filho in no.get_children():
+			pilha.append({"no": filho, "transformada": transformada})
+	raiz.free()
+	if pontos.size() < 3:
+		return
+	var minimo := pontos[0]
+	var maximo := pontos[0]
+	for ponto in pontos:
+		minimo = Vector2(minf(minimo.x, ponto.x), minf(minimo.y, ponto.y))
+		maximo = Vector2(maxf(maximo.x, ponto.x), maxf(maximo.y, ponto.y))
+	_centro_original_cpt = (minimo + maximo) * 0.5
+	_escala_horizontal_cpt = raio_em_metros() * 2.0 / maxf(maximo.x - minimo.x,
+		maximo.y - minimo.y)
+	var casco := Geometry2D.convex_hull(pontos)
+	for ponto in casco:
+		_contorno_cpt.append((ponto - _centro_original_cpt) * _escala_horizontal_cpt)
 
 
 ## Paredes invisiveis ao longo do contorno organico. Sem elas o personagem

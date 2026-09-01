@@ -2,10 +2,15 @@ shader_type spatial;
 render_mode diffuse_burley, specular_disabled;
 
 varying vec3 posicao_mundo;
+uniform float suavizar_normais : hint_range(0.0, 1.0) = 0.0;
 
 
 void vertex() {
 	posicao_mundo = (MODEL_MATRIX * vec4(VERTEX, 1.0)).xyz;
+	// A CPT Island e ampliada muito alem do tamanho original. Interpolar sua
+	// normal com a vertical impede que cada triangulo gigante apareca como uma
+	// placa separada, sem alterar a geometria dos demais modulos.
+	NORMAL = normalize(mix(NORMAL, vec3(0.0, 1.0, 0.0), suavizar_normais));
 }
 
 
