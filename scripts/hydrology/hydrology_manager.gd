@@ -57,6 +57,15 @@ func occupied_cells() -> Dictionary:
 	return result
 
 
+func ocean_terminal() -> Dictionary:
+	for tile: WaterTileData in tiles.values():
+		for connection: RiverConnection in tile.river_connections:
+			if connection.kind == RiverConnection.Kind.OCEAN:
+				return {"cell": tile.cell, "side": int(connection.side),
+					"position": tile.world_position(connection)}
+	return {}
+
+
 func _harmonize_shared_connections() -> void:
 	for cell: Vector2i in tiles:
 		var tile: WaterTileData = tiles[cell]

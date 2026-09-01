@@ -26,8 +26,8 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		errors.append("catalogo de hidrologia ou grid vazio")
 		return
 	var source := _highest_interior_cell(land_cells, height_sampler, tile_size)
-	var ocean := _nearest_coast_cell(source, land_cells)
-	path_cells = _find_path(source, ocean, land_cells, height_sampler, tile_size)
+	path_cells = _find_path_to_straight_coast(source, land_cells,
+		height_sampler, tile_size)
 	if path_cells.size() < 4:
 		errors.append("nao foi possivel criar um rio completo ate o oceano")
 		return
@@ -41,7 +41,8 @@ func plan(land_cells: Dictionary, tile_size: float, height_sampler: Callable,
 		if index == path_cells.size() - 1:
 			exit = _ocean_side(cell, land_cells)
 		var asset := _choose_asset(catalog, entry, exit,
-			previous_exit_fraction, has_previous_exit)
+			previous_exit_fraction, has_previous_exit,
+			index == path_cells.size() - 1)
 		if asset.is_empty():
 			errors.append("sem tile compativel em %s" % cell)
 			continue
@@ -121,6 +122,30 @@ func _nearest_coast_cell(source: Vector2i, cells: Dictionary) -> Vector2i:
 			best_distance = distance
 			best = cell
 	return best
+
+
+## Escolhe uma costa cuja ultima transicao seja perpendicular a praia. Assim
+## entrada e saida ficam opostas e encaixam no CPT_River_End_L_b_01.
+func _find_path_to_straight_coast(source: Vector2i, cells: Dictionary,
+		sampler: Callable, size: float) -> Array[Vector2i]:
+	var melhor: Array[Vector2i] = []
+	var melhor_custo := INF
+	for costa: Vector2i in cells:
+		for lado in range(4):
+			if cells.has(costa + DIRECTIONS[lado]):
+				continue
+			var interior: Vector2i = costa - DIRECTIONS[lado]
+			if not cells.has(interior):
+				continue
+			var caminho: Array[Vector2i] = _find_path(source, interior, cells, sampler, size)
+			if caminho.is_empty() or caminho.has(costa):
+				continue
+			var custo := float(caminho.size()) + source.distance_squared_to(costa) * 0.001
+			if custo < melhor_custo:
+				melhor_custo = custo
+				melhor = caminho
+				melhor.append(costa)
+	return melhor
 
 
 func _find_path(start: Vector2i, goal: Vector2i, cells: Dictionary,
@@ -216,7 +241,8 @@ func _rotated_edges(asset: Dictionary, rotation: int) -> Dictionary:
 
 
 func _choose_asset(catalog: Array, entry: int, exit: int,
-		previous_fraction: float, has_previous: bool) -> Dictionary:
+		previous_fraction: float, has_previous: bool,
+		prefer_river_end := false) -> Dictionary:
 	var desired := {}
 	if entry >= 0: desired[entry] = true
 	if exit >= 0: desired[exit] = true
@@ -238,6 +264,11 @@ func _choose_asset(catalog: Array, entry: int, exit: int,
 			var entry_fraction := float(edges[entry]["fraction"]) if entry >= 0 else 0.0
 			var exit_fraction := float(edges[exit]["fraction"]) if exit >= 0 else 0.0
 			var score := absf(entry_fraction - previous_fraction) * 20.0 if has_previous else absf(exit_fraction)
+			var e_fim := "River_End" in String(asset.get("nome", ""))
+			if prefer_river_end:
+				score += -100.0 if e_fim else 100.0
+			elif e_fim:
+				score += 4.0
 			if entry >= 0 and exit >= 0 and posmod(entry + 2, 4) == exit:
 				score += absf(entry_fraction - exit_fraction) * 3.0
 			score += maxf(0.0, -float(asset.get("y_min", -2.0)) - 2.5) * 0.1

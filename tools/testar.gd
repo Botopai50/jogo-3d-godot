@@ -55,7 +55,8 @@ func rodar() -> void:
 	var minimo_de_modulos: int = ilha.raio_em_modulos * ilha.raio_em_modulos
 	checar(modulos > minimo_de_modulos, "a ilha tem modulos suficientes", "(%d)" % modulos)
 	checar(limite.get_child_count() > 20, "a costa esta cercada por limites", "(%d)" % limite.get_child_count())
-	checar(ilha.has_node("CostaModularCPT"), "a costa usa um anel de CPT_Island_M")
+	checar(ilha.has_node("CostaOrganica") and not ilha.has_node("CostaModularCPT"),
+		"a costa organica substitui os CPT_Island")
 	checar(limite.get_child_count() == ilha.segmentos_da_costa,
 		"o limite fisico acompanha o contorno organico", "(%d segmentos)" % limite.get_child_count())
 
@@ -160,6 +161,13 @@ func rodar() -> void:
 				ocean_connections += 1 if connection.kind == RiverConnection.Kind.OCEAN else 0
 	checar(lakes >= 1, "o mundo possui lago com mascara plana", "(%d)" % lakes)
 	checar(ocean_connections >= 1, "o rio possui terminal de oceano", "(%d)" % ocean_connections)
+	var terminal_usa_modulo := false
+	if hydrology != null:
+		var terminal_da_foz: Dictionary = hydrology.ocean_terminal()
+		for placement: Dictionary in hydrology.placements:
+			if not terminal_da_foz.is_empty() and placement["cell"] == terminal_da_foz["cell"]:
+				terminal_usa_modulo = "River_End" in String(placement["name"])
+	checar(terminal_usa_modulo, "a foz usa um modulo CPT_River_End")
 	var water_mesh := hydrology.get_node_or_null("WaterGeometry") as MeshInstance3D if hydrology != null else null
 	checar(water_mesh != null and water_mesh.mesh != null, "WaterGeometry independente existe")
 	var repeated := 0

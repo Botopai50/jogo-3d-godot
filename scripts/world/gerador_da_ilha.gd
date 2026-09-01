@@ -180,7 +180,7 @@ func gerar() -> void:
 	var raiz_detalhes := _novo_grupo("Detalhes")
 	var raiz_ilhotas := _novo_grupo("Ilhotas")
 
-	_montar_costa_modular_cpt()
+	_montar_costa_organica_com_foz()
 	_montar_terreno(raiz_terreno)
 	if gerar_rio:
 		_montar_modulos_do_rio(_novo_grupo("Rio"))
@@ -488,6 +488,39 @@ func _marcar_terra() -> void:
 			break
 
 
+## Mede onde um raio sai da uniao real das celulas quadradas. Isso permite que
+## a base costeira comece nas pontas externas do grid, em vez de desenhar uma
+## ilha circular independente por baixo dele.
+func _raio_do_grid_na_direcao(direcao: Vector2) -> float:
+	var maior_saida := 0.0
+	var metade := tamanho_do_modulo * 0.5
+	for celula: Vector2i in _celulas:
+		var centro := Vector2(celula.x, celula.y) * tamanho_do_modulo
+		var minimo := centro - Vector2.ONE * metade
+		var maximo := centro + Vector2.ONE * metade
+		var entrada := -INF
+		var saida := INF
+		if absf(direcao.x) < 0.0001:
+			if 0.0 < minimo.x or 0.0 > maximo.x:
+				continue
+		else:
+			var tx_a := minimo.x / direcao.x
+			var tx_b := maximo.x / direcao.x
+			entrada = maxf(entrada, minf(tx_a, tx_b))
+			saida = minf(saida, maxf(tx_a, tx_b))
+		if absf(direcao.y) < 0.0001:
+			if 0.0 < minimo.y or 0.0 > maximo.y:
+				continue
+		else:
+			var tz_a := minimo.y / direcao.y
+			var tz_b := maximo.y / direcao.y
+			entrada = maxf(entrada, minf(tz_a, tz_b))
+			saida = minf(saida, maxf(tz_a, tz_b))
+		if saida >= maxf(entrada, 0.0):
+			maior_saida = maxf(maior_saida, saida)
+	return maior_saida
+
+
 func _e_terra(gx: int, gz: int) -> bool:
 	return _celulas.has(Vector2i(gx, gz))
 
@@ -581,7 +614,32 @@ func _montar_base_organica() -> void:
 	var normais := PackedVector3Array()
 	var cores := PackedColorArray()
 	var indices := PackedInt32Array()
-	var segmentos := maxi(segmentos_da_costa, 32)
+	# Resolucao dobrada para a enseada da foz nao ser fechada por um triangulo
+	# grande entre duas amostras do contorno.
+	var segmentos := maxi(segmentos_da_costa * 2, 192)
+	var raios_do_grid := PackedFloat32Array()
+	for i in range(segmentos):
+		var angulo := TAU * float(i) / float(segmentos)
+		raios_do_grid.append(_raio_do_grid_na_direcao(
+			Vector2(cos(angulo), sin(angulo))))
+	# Uma media curta conserva os cabos criados pelos cantos dos modulos, mas
+	# transforma os degraus de 90 graus em transicoes costeiras arredondadas.
+	var raios_suaves := PackedFloat32Array()
+	for i in range(segmentos):
+		var anterior := raios_do_grid[posmod(i - 1, segmentos)]
+		var atual := raios_do_grid[i]
+		var proximo := raios_do_grid[(i + 1) % segmentos]
+		raios_suaves.append(anterior * 0.2 + atual * 0.6 + proximo * 0.2)
+	var angulo_da_foz := INF
+	var raio_do_socket_da_foz := INF
+	if _hydrology != null:
+		var terminal: Dictionary = _hydrology.ocean_terminal()
+		if not terminal.is_empty():
+			var posicao_da_foz: Vector3 = terminal["position"]
+			# Ajuste manual da variante River_End usada nesta versao. A abertura
+			# real da peca fica deslocada em relacao ao centro geometrico.
+			angulo_da_foz = atan2(posicao_da_foz.z, posicao_da_foz.x) + 0.032
+			raio_do_socket_da_foz = Vector2(posicao_da_foz.x, posicao_da_foz.z).length()
 	# O tom interno acompanha a media do shader continuo para que a borda dos
 	# modulos desapareca visualmente sobre a base.
 	# O alpha informa ao shader quanto misturar com areia: zero no miolo e um
@@ -595,14 +653,34 @@ func _montar_base_organica() -> void:
 	for i in range(segmentos):
 		var angulo := TAU * float(i) / float(segmentos)
 		var direcao := Vector2(cos(angulo), sin(angulo))
-		var raio_externo := _raio_na_direcao(direcao.x, direcao.y) * tamanho_do_modulo
-		var raio_interno := maxf(raio_externo - largura_da_costa, 1.0)
-		vertices.append(Vector3(direcao.x * raio_interno, -0.03, direcao.y * raio_interno))
+		var raio_interno := maxf(raios_suaves[i] - tamanho_do_modulo * 0.04, 1.0)
+		var raio_externo := raio_interno + largura_da_costa
+		var influencia_da_foz := 0.0
+		if angulo_da_foz < INF:
+			var diferenca_angular := wrapf(angulo - angulo_da_foz, -PI, PI)
+			var distancia_angular := absf(diferenca_angular)
+			# Ajuste manual preservado da versao solicitada: a margem direita
+			# recebe uma abertura maior que a esquerda.
+			var abertura_cheia := 0.072 if diferenca_angular > 0.0 else 0.045
+			var fim_da_transicao := 0.135 if diferenca_angular > 0.0 else 0.095
+			influencia_da_foz = 1.0 - smoothstep(abertura_cheia,
+				fim_da_transicao, distancia_angular)
+			raio_interno = lerpf(raio_interno,
+				maxf(raio_do_socket_da_foz - tamanho_do_modulo * 0.18, 1.0),
+				influencia_da_foz)
+			# O oceano entra ate a abertura do River_End, criando uma enseada na
+			# propria base em vez de cobrir a costa com uma faixa artificial.
+			raio_externo = lerpf(raio_externo, raio_interno, influencia_da_foz)
+		var altura_interna := lerpf(-0.03, -profundidade_da_beirada - 0.35,
+			influencia_da_foz)
+		vertices.append(Vector3(direcao.x * raio_interno, altura_interna,
+			direcao.y * raio_interno))
 		normais.append(Vector3.UP)
 		cores.append(cor_terreno)
 		vertices.append(Vector3(direcao.x * raio_externo, -profundidade_da_beirada, direcao.y * raio_externo))
 		normais.append(Vector3.UP)
 		cores.append(cor_areia)
+
 
 	for i in range(segmentos):
 		var proximo := (i + 1) % segmentos
@@ -644,43 +722,228 @@ func _montar_base_organica() -> void:
 	corpo.add_child(colisao)
 
 
-## Costa formada por varias pecas CPT_Island_M em escala modular. O grid cobre
-## o interior e a sobreposicao das ilhas menores desenha a margem.
-func _montar_costa_modular_cpt() -> void:
-	# Uma malha continua rasa fecha apenas as pequenas frestas entre as pecas;
-	# quem desenha visualmente a margem sao os modulos CPT abaixo.
+## Rasteriza a borda externa do proprio River_End e encontra separadamente o
+## primeiro e o ultimo quadrado da mascara de agua.
+func _limites_da_agua_no_modulo_de_foz(terminal: Dictionary,
+		angulo_central: float) -> Vector2:
+	var resolucao := WaterGeometryGenerator.MASK_RESOLUTION
+	var grade := _grade_de_altura(terminal["cell"], resolucao)
+	if grade.is_empty(): return Vector2.INF
+	var lado := int(terminal["side"])
+	var celula: Vector2i = terminal["cell"]
+	var centro := Vector2(celula.x, celula.y) * tamanho_do_modulo
+	var metade := tamanho_do_modulo * 0.5
+	var passo := tamanho_do_modulo / float(resolucao - 1)
+	var mascara: Array[bool] = []
+	mascara.resize(resolucao * resolucao)
+	for gz in range(resolucao):
+		for gx in range(resolucao):
+			var x := centro.x - metade + float(gx) * passo
+			var z := centro.y - metade + float(gz) * passo
+			var macro := _altura_macro_do_terreno(x, z)
+			mascara[gz * resolucao + gx] = grade[gz * resolucao + gx] < \
+				macro - WaterGeometryGenerator.MINIMUM_CHANNEL_DEPTH
+	var dilatada := mascara.duplicate()
+	for gz in range(resolucao):
+		for gx in range(resolucao):
+			if not mascara[gz * resolucao + gx]: continue
+			for dz in range(-1, 2):
+				for dx in range(-1, 2):
+					var nx := gx + dx
+					var nz := gz + dz
+					if nx >= 0 and nx < resolucao and nz >= 0 and nz < resolucao:
+						dilatada[nz * resolucao + nx] = true
+	var menor := INF
+	var maior := -INF
+	for i in range(resolucao - 1):
+		var gx := i if lado in [RiverConnection.Side.NORTH, RiverConnection.Side.SOUTH] else (resolucao - 2 if lado == RiverConnection.Side.EAST else 0)
+		var gz := i if lado in [RiverConnection.Side.EAST, RiverConnection.Side.WEST] else (resolucao - 2 if lado == RiverConnection.Side.SOUTH else 0)
+		if not dilatada[gz * resolucao + gx]: continue
+		for extremo in [i, i + 1]:
+			var lateral := -metade + float(extremo) * passo
+			var ponto := Vector2.ZERO
+			match lado:
+				RiverConnection.Side.NORTH: ponto = centro + Vector2(lateral, -metade)
+				RiverConnection.Side.EAST: ponto = centro + Vector2(metade, lateral)
+				RiverConnection.Side.SOUTH: ponto = centro + Vector2(lateral, metade)
+				_: ponto = centro + Vector2(-metade, lateral)
+			var diferenca := wrapf(atan2(ponto.y, ponto.x) - angulo_central, -PI, PI)
+			menor = minf(menor, diferenca)
+			maior = maxf(maior, diferenca)
+	if menor == INF: return Vector2.INF
+	return Vector2(menor, maior)
+
+
+## Distancia radial ate o plano da face externa do modulo terminal. Isso
+## preserva a coordenada real do cruzamento agua/terra em vez de conservar
+## apenas seu angulo em relacao ao centro da ilha.
+func _raio_ate_face_da_foz(terminal: Dictionary, angulo: float) -> float:
+	if terminal.is_empty():
+		return INF
+	var celula: Vector2i = terminal["cell"]
+	var lado := int(terminal["side"])
+	var metade := tamanho_do_modulo * 0.5
+	var cosseno := cos(angulo)
+	var seno := sin(angulo)
+	match lado:
+		RiverConnection.Side.NORTH:
+			if absf(seno) < 0.000001: return INF
+			return (celula.y * tamanho_do_modulo - metade) / seno
+		RiverConnection.Side.EAST:
+			if absf(cosseno) < 0.000001: return INF
+			return (celula.x * tamanho_do_modulo + metade) / cosseno
+		RiverConnection.Side.SOUTH:
+			if absf(seno) < 0.000001: return INF
+			return (celula.y * tamanho_do_modulo + metade) / seno
+		_:
+			if absf(cosseno) < 0.000001: return INF
+			return (celula.x * tamanho_do_modulo - metade) / cosseno
+
+
+## A malha organica conecta o grid ao oceano sem CPT_Island. Somente os dois
+## modulos de rio continuam alem do grid para formar a foz.
+func _montar_costa_organica_com_foz() -> void:
 	_montar_base_organica()
-	var costa := Node3D.new()
-	costa.name = "CostaModularCPT"
-	add_child(costa)
-	var arquivos := PackedStringArray()
-	for arquivo in DirAccess.get_files_at(PASTA_COSTA_CPT):
-		if arquivo.ends_with(".fbx"):
-			arquivos.append(PASTA_COSTA_CPT + arquivo)
-	if arquivos.is_empty():
-		push_error("modulos CPT Island M nao encontrados")
+
+
+## Preenche o espaco que os triangulos radiais deixam ao redor da foz. Sao
+## duas pecas independentes (uma por margem); o intervalo entre as intersecoes
+## reais terreno/agua permanece completamente vazio.
+func _montar_conector_local_da_foz() -> void:
+	if _hydrology == null:
 		return
-	# O espacamento fica menor que a largura das pecas M para elas se
-	# sobreporem suavemente, sem buracos nem quadrados expostos ao oceano.
-	var quantidade := maxi(28, int(ceil(TAU * raio_em_metros() / 210.0)))
-	for i in range(quantidade):
-		var angulo := TAU * float(i) / float(quantidade)
-		var direcao := Vector2(cos(angulo), sin(angulo))
-		var raio := _raio_na_direcao(direcao.x, direcao.y) * tamanho_do_modulo
-		var cena := load(arquivos[(i * 7 + semente) % arquivos.size()]) as PackedScene
-		if cena == null:
+	var terminal: Dictionary = _hydrology.ocean_terminal()
+	if terminal.is_empty():
+		return
+	var posicao: Vector3 = terminal["position"]
+	var angulo_central := atan2(posicao.z, posicao.x)
+	var limites := _limites_da_agua_no_modulo_de_foz(terminal, angulo_central)
+	if limites == Vector2.INF:
+		return
+	var lado := int(terminal["side"])
+	var celula: Vector2i = terminal["cell"]
+	var centro := Vector2(celula.x, celula.y) * tamanho_do_modulo
+	var metade := tamanho_do_modulo * 0.5
+	var para_fora := Vector2.ZERO
+	var lateral := Vector2.ZERO
+	match lado:
+		RiverConnection.Side.NORTH:
+			para_fora = Vector2(0.0, -1.0); lateral = Vector2(1.0, 0.0)
+		RiverConnection.Side.EAST:
+			para_fora = Vector2(1.0, 0.0); lateral = Vector2(0.0, 1.0)
+		RiverConnection.Side.SOUTH:
+			para_fora = Vector2(0.0, 1.0); lateral = Vector2(1.0, 0.0)
+		_:
+			para_fora = Vector2(-1.0, 0.0); lateral = Vector2(0.0, 1.0)
+	var centro_da_face := centro + para_fora * metade
+	var laterais_da_agua := PackedFloat32Array()
+	for diferenca in [limites.x, limites.y]:
+		var angulo: float = angulo_central + float(diferenca)
+		var raio: float = _raio_ate_face_da_foz(terminal, angulo)
+		var ponto := Vector2(cos(angulo), sin(angulo)) * raio
+		laterais_da_agua.append((ponto - centro_da_face).dot(lateral))
+	laterais_da_agua.sort()
+
+	var vertices := PackedVector3Array()
+	var normais := PackedVector3Array()
+	var cores := PackedColorArray()
+	var indices := PackedInt32Array()
+	var faixas := [Vector2(-metade, laterais_da_agua[0]),
+		Vector2(laterais_da_agua[1], metade)]
+	for faixa: Vector2 in faixas:
+		if faixa.y - faixa.x < 0.01:
 			continue
-		var peca := cena.instantiate() as Node3D
-		peca.name = "Costa_%02d" % i
-		# M mede aproximadamente 200 m. Uma leve sobreposicao cria enseadas e
-		# cabos arredondados sem esticar os triangulos do asset.
-		var escala := tamanho_do_modulo / 100.0
-		peca.scale = Vector3(escala, 1.0, escala)
-		peca.rotation.y = -angulo + PI * 0.5
-		peca.position = Vector3(direcao.x * (raio - tamanho_do_modulo * 0.55),
-			-0.45, direcao.y * (raio - tamanho_do_modulo * 0.55))
-		_aplicar_material_suave_da_costa(peca)
-		costa.add_child(peca)
+		var inicio := vertices.size()
+		var face_a := centro_da_face + lateral * faixa.x
+		var face_b := centro_da_face + lateral * faixa.y
+		var fora_a := face_a + para_fora * largura_da_costa
+		var fora_b := face_b + para_fora * largura_da_costa
+		for ponto in [face_a, face_b]:
+			vertices.append(Vector3(ponto.x, -0.03, ponto.y))
+			normais.append(Vector3.UP)
+			cores.append(Color(0.28, 0.54, 0.26, 0.0))
+		for ponto in [fora_a, fora_b]:
+			# O oceano global esta em y=-0,35. O conector deve continuar visivel
+			# ate encontrar a costa existente; o mergulho profundo fica por conta
+			# da malha organica que ja existe logo abaixo.
+			vertices.append(Vector3(ponto.x, -0.34, ponto.y))
+			normais.append(Vector3.UP)
+			cores.append(Color(0.56, 0.50, 0.31, 1.0))
+		indices.append_array([inicio, inicio + 2, inicio + 1,
+			inicio + 1, inicio + 2, inicio + 3])
+	if vertices.is_empty():
+		return
+	var malha := ArrayMesh.new()
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normais
+	arrays[Mesh.ARRAY_COLOR] = cores
+	arrays[Mesh.ARRAY_INDEX] = indices
+	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	var material := ShaderMaterial.new()
+	material.shader = SHADER_COSTA_ORGANICA
+	malha.surface_set_material(0, material)
+	var visual := MeshInstance3D.new()
+	visual.name = "ConectorLocalDaFoz"
+	visual.mesh = malha
+	add_child(visual)
+
+
+## Cria somente a lamina da foz sobre a faixa costeira. Ela nasce no socket
+## OCEAN da ultima peca CPT_River, alarga como um estuario e termina exatamente
+## na borda da base, sem acrescentar outro quadrado para fora da ilha.
+func _montar_foz_na_base_costeira() -> void:
+	if _hydrology == null:
+		return
+	var terminal: Dictionary = _hydrology.ocean_terminal()
+	if terminal.is_empty():
+		return
+	var inicio: Vector3 = terminal["position"]
+	var radial := Vector2(inicio.x, inicio.z)
+	if radial.is_zero_approx():
+		return
+	var direcao := radial.normalized()
+	var perpendicular := Vector2(-direcao.y, direcao.x)
+	var raio_interno := _raio_do_grid_na_direcao(direcao) - tamanho_do_modulo * 0.04
+	var raio_externo := raio_interno + largura_da_costa * 0.96
+	var fim := Vector3(direcao.x * raio_externo, -profundidade_da_beirada * 0.32,
+		direcao.y * raio_externo)
+	var vertices := PackedVector3Array()
+	var normais := PackedVector3Array()
+	var indices := PackedInt32Array()
+	var segmentos := 18
+	for i in range(segmentos + 1):
+		var t := float(i) / float(segmentos)
+		var centro := inicio.lerp(fim, t)
+		# Curva discreta, suficiente para quebrar a linha reta sem deslocar o
+		# encaixe inicial do socket.
+		var deslocamento := sin(t * PI) * tamanho_do_modulo * 0.055
+		centro.x += perpendicular.x * deslocamento
+		centro.z += perpendicular.y * deslocamento
+		centro.y += 0.075
+		var meia_largura := lerpf(tamanho_do_modulo * largura_da_agua_do_rio * 0.5,
+			tamanho_do_modulo * 0.19, smoothstep(0.15, 1.0, t))
+		var lateral := Vector3(perpendicular.x * meia_largura, 0.0,
+			perpendicular.y * meia_largura)
+		vertices.append(centro + lateral)
+		vertices.append(centro - lateral)
+		normais.append_array([Vector3.UP, Vector3.UP])
+		if i < segmentos:
+			var a := i * 2
+			indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normais
+	arrays[Mesh.ARRAY_INDEX] = indices
+	var malha := ArrayMesh.new()
+	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	malha.surface_set_material(0, _material_da_agua())
+	var foz := MeshInstance3D.new()
+	foz.name = "FozOrganica"
+	foz.mesh = malha
+	_hydrology.add_child(foz)
 
 
 ## Extrai o casco da propria malha CPT e o converte para coordenadas do mundo.

@@ -83,4 +83,26 @@ func rodar() -> void:
 		await esperar(20)
 		await capturar("rio_de_perto")
 
+		# Zoom dedicado na foz, centralizado no socket que liga o rio ao mar.
+		var hydrology: HydrologyManager = ilha.get_node_or_null("Hydrology")
+		if hydrology != null:
+			var terminal: Dictionary = hydrology.ocean_terminal()
+			if not terminal.is_empty():
+				var foz: Vector3 = terminal["position"]
+				var radial := Vector3(foz.x, 0.0, foz.z).normalized()
+				var centro_da_foz: Vector3 = foz + radial * float(ilha.largura_da_costa) * 0.45
+				camera.projection = Camera3D.PROJECTION_ORTHOGONAL
+				camera.size = ilha.tamanho_do_modulo * 3.2
+				camera.global_position = centro_da_foz + Vector3(0.0, 520.0, 0.0)
+				camera.rotation_degrees = Vector3(-90.0, 0.0, 0.0)
+				await esperar(20)
+				await capturar("foz_zoom_de_cima")
+
+				camera.projection = Camera3D.PROJECTION_PERSPECTIVE
+				camera.fov = 48.0
+				camera.global_position = centro_da_foz - radial * 230.0 + Vector3(0.0, 145.0, 0.0)
+				camera.look_at(centro_da_foz, Vector3.UP)
+				await esperar(20)
+				await capturar("foz_zoom_lateral")
+
 	quit()
