@@ -168,6 +168,9 @@ func rodar() -> void:
 			if not terminal_da_foz.is_empty() and placement["cell"] == terminal_da_foz["cell"]:
 				terminal_usa_modulo = "River_End" in String(placement["name"])
 	checar(terminal_usa_modulo, "a foz usa um modulo CPT_River_End")
+	var limites_da_foz: Vector2 = ilha.limites_automaticos_da_foz()
+	checar(limites_da_foz != Vector2.INF and limites_da_foz.y > limites_da_foz.x,
+		"a abertura da foz e medida automaticamente no corte do modulo")
 	var water_mesh := hydrology.get_node_or_null("WaterGeometry") as MeshInstance3D if hydrology != null else null
 	checar(water_mesh != null and water_mesh.mesh != null, "WaterGeometry independente existe")
 	var repeated := 0

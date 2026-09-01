@@ -138,6 +138,7 @@ var _hydrology: HydrologyManager
 var _contorno_cpt := PackedVector2Array()
 var _centro_original_cpt := Vector2.ZERO
 var _escala_horizontal_cpt := 1.0
+var _limites_automaticos_da_foz := Vector2.INF
 
 
 func _ready() -> void:
@@ -180,12 +181,14 @@ func gerar() -> void:
 	var raiz_detalhes := _novo_grupo("Detalhes")
 	var raiz_ilhotas := _novo_grupo("Ilhotas")
 
-	_montar_costa_organica_com_foz()
 	_montar_terreno(raiz_terreno)
 	if gerar_rio:
 		_montar_modulos_do_rio(_novo_grupo("Rio"))
 		_hydrology.build_geometry_from_terrain(Callable(self, "_grade_de_altura"),
 			Callable(self, "_altura_macro_do_terreno"))
+	# A costa vem depois do River_End para medir na propria malha os dois
+	# pontos exatos em que a agua cruza a face externa do modulo.
+	_montar_costa_organica_com_foz()
 	_montar_limite()
 	_montar_marcos(raiz_detalhes)
 	# Afloramentos de porte medio e pedras pequenas saem do mesmo acervo de
@@ -631,15 +634,16 @@ func _montar_base_organica() -> void:
 		var proximo := raios_do_grid[(i + 1) % segmentos]
 		raios_suaves.append(anterior * 0.2 + atual * 0.6 + proximo * 0.2)
 	var angulo_da_foz := INF
-	var raio_do_socket_da_foz := INF
+	var terminal_da_foz := {}
+	_limites_automaticos_da_foz = Vector2.INF
 	if _hydrology != null:
 		var terminal: Dictionary = _hydrology.ocean_terminal()
 		if not terminal.is_empty():
 			var posicao_da_foz: Vector3 = terminal["position"]
-			# Ajuste manual da variante River_End usada nesta versao. A abertura
-			# real da peca fica deslocada em relacao ao centro geometrico.
-			angulo_da_foz = atan2(posicao_da_foz.z, posicao_da_foz.x) + 0.032
-			raio_do_socket_da_foz = Vector2(posicao_da_foz.x, posicao_da_foz.z).length()
+			angulo_da_foz = atan2(posicao_da_foz.z, posicao_da_foz.x)
+			terminal_da_foz = terminal
+			_limites_automaticos_da_foz = _limites_da_agua_no_modulo_de_foz(
+				terminal, angulo_da_foz)
 	# O tom interno acompanha a media do shader continuo para que a borda dos
 	# modulos desapareca visualmente sobre a base.
 	# O alpha informa ao shader quanto misturar com areia: zero no miolo e um
@@ -656,18 +660,22 @@ func _montar_base_organica() -> void:
 		var raio_interno := maxf(raios_suaves[i] - tamanho_do_modulo * 0.04, 1.0)
 		var raio_externo := raio_interno + largura_da_costa
 		var influencia_da_foz := 0.0
-		if angulo_da_foz < INF:
+		if angulo_da_foz < INF and _limites_automaticos_da_foz != Vector2.INF:
 			var diferenca_angular := wrapf(angulo - angulo_da_foz, -PI, PI)
-			var distancia_angular := absf(diferenca_angular)
-			# Ajuste manual preservado da versao solicitada: a margem direita
-			# recebe uma abertura maior que a esquerda.
-			var abertura_cheia := 0.072 if diferenca_angular > 0.0 else 0.045
-			var fim_da_transicao := 0.135 if diferenca_angular > 0.0 else 0.095
-			influencia_da_foz = 1.0 - smoothstep(abertura_cheia,
-				fim_da_transicao, distancia_angular)
-			raio_interno = lerpf(raio_interno,
-				maxf(raio_do_socket_da_foz - tamanho_do_modulo * 0.18, 1.0),
-				influencia_da_foz)
+			var distancia_ao_corte := 0.0
+			if diferenca_angular < _limites_automaticos_da_foz.x:
+				distancia_ao_corte = _limites_automaticos_da_foz.x - diferenca_angular
+			elif diferenca_angular > _limites_automaticos_da_foz.y:
+				distancia_ao_corte = diferenca_angular - _limites_automaticos_da_foz.y
+			# Um segmento de transicao suaviza somente a terra fora do corte. O
+			# intervalo central vem integralmente da mascara medida do River_End.
+			var transicao_angular := TAU / float(segmentos)
+			influencia_da_foz = 1.0 - smoothstep(0.0,
+				transicao_angular, distancia_ao_corte)
+			var raio_da_face := _raio_ate_face_da_foz(terminal_da_foz, angulo)
+			if raio_da_face < INF:
+				raio_interno = lerpf(raio_interno, raio_da_face,
+					influencia_da_foz)
 			# O oceano entra ate a abertura do River_End, criando uma enseada na
 			# propria base em vez de cobrir a costa com uma faixa artificial.
 			raio_externo = lerpf(raio_externo, raio_interno, influencia_da_foz)
@@ -806,6 +814,10 @@ func _montar_costa_organica_com_foz() -> void:
 	_montar_base_organica()
 
 
+func limites_automaticos_da_foz() -> Vector2:
+	return _limites_automaticos_da_foz
+
+
 ## Preenche o espaco que os triangulos radiais deixam ao redor da foz. Sao
 ## duas pecas independentes (uma por margem); o intervalo entre as intersecoes
 ## reais terreno/agua permanece completamente vazio.
@@ -888,62 +900,6 @@ func _montar_conector_local_da_foz() -> void:
 	visual.name = "ConectorLocalDaFoz"
 	visual.mesh = malha
 	add_child(visual)
-
-
-## Cria somente a lamina da foz sobre a faixa costeira. Ela nasce no socket
-## OCEAN da ultima peca CPT_River, alarga como um estuario e termina exatamente
-## na borda da base, sem acrescentar outro quadrado para fora da ilha.
-func _montar_foz_na_base_costeira() -> void:
-	if _hydrology == null:
-		return
-	var terminal: Dictionary = _hydrology.ocean_terminal()
-	if terminal.is_empty():
-		return
-	var inicio: Vector3 = terminal["position"]
-	var radial := Vector2(inicio.x, inicio.z)
-	if radial.is_zero_approx():
-		return
-	var direcao := radial.normalized()
-	var perpendicular := Vector2(-direcao.y, direcao.x)
-	var raio_interno := _raio_do_grid_na_direcao(direcao) - tamanho_do_modulo * 0.04
-	var raio_externo := raio_interno + largura_da_costa * 0.96
-	var fim := Vector3(direcao.x * raio_externo, -profundidade_da_beirada * 0.32,
-		direcao.y * raio_externo)
-	var vertices := PackedVector3Array()
-	var normais := PackedVector3Array()
-	var indices := PackedInt32Array()
-	var segmentos := 18
-	for i in range(segmentos + 1):
-		var t := float(i) / float(segmentos)
-		var centro := inicio.lerp(fim, t)
-		# Curva discreta, suficiente para quebrar a linha reta sem deslocar o
-		# encaixe inicial do socket.
-		var deslocamento := sin(t * PI) * tamanho_do_modulo * 0.055
-		centro.x += perpendicular.x * deslocamento
-		centro.z += perpendicular.y * deslocamento
-		centro.y += 0.075
-		var meia_largura := lerpf(tamanho_do_modulo * largura_da_agua_do_rio * 0.5,
-			tamanho_do_modulo * 0.19, smoothstep(0.15, 1.0, t))
-		var lateral := Vector3(perpendicular.x * meia_largura, 0.0,
-			perpendicular.y * meia_largura)
-		vertices.append(centro + lateral)
-		vertices.append(centro - lateral)
-		normais.append_array([Vector3.UP, Vector3.UP])
-		if i < segmentos:
-			var a := i * 2
-			indices.append_array([a, a + 2, a + 1, a + 1, a + 2, a + 3])
-	var arrays := []
-	arrays.resize(Mesh.ARRAY_MAX)
-	arrays[Mesh.ARRAY_VERTEX] = vertices
-	arrays[Mesh.ARRAY_NORMAL] = normais
-	arrays[Mesh.ARRAY_INDEX] = indices
-	var malha := ArrayMesh.new()
-	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
-	malha.surface_set_material(0, _material_da_agua())
-	var foz := MeshInstance3D.new()
-	foz.name = "FozOrganica"
-	foz.mesh = malha
-	_hydrology.add_child(foz)
 
 
 ## Extrai o casco da propria malha CPT e o converte para coordenadas do mundo.
