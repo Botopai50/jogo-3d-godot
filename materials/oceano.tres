@@ -1,14 +1,9 @@
-[gd_resource type="ShaderMaterial" format=3]
-
-[ext_resource type="Shader" path="res://shaders/oceano.gdshader" id="1_r80e7"]
+[gd_resource type="StandardMaterial3D" format=3]
 
 [resource]
-resource_name = "Oceano"
-render_priority = 0
-shader = ExtResource("1_r80e7")
-shader_parameter/cor_rasa = null
-shader_parameter/cor_profunda = null
-shader_parameter/escala_das_ondas = null
-shader_parameter/velocidade_das_ondas = null
-shader_parameter/intensidade_da_normal = null
-shader_parameter/rugosidade = null
+resource_name = "Agua simples compartilhada"
+shading_mode = 0
+albedo_color = Color(0.08, 0.34, 0.58, 1)
+metallic = 0.0
+roughness = 1.0
+cull_mode = 2

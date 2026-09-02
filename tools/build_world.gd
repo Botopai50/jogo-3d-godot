@@ -2,8 +2,6 @@
 # Uso: godot --headless --path . --script tools/build_world.gd
 extends SceneTree
 
-const MALHA_AGUA := "res://scenes/modules/malhas/Water_H_a_01.res"
-const LADO_DA_MALHA_DE_AGUA := 400.0
 ## Lado do oceano em metros. Fica dentro do alcance da camera (6000) mesmo nas
 ## quinas, e a neblina esconde o fim do plano.
 const LADO_DO_OCEANO := 8000.0
@@ -57,13 +55,17 @@ func construir_oceano() -> Error:
 
 	var agua := MeshInstance3D.new()
 	agua.name = "Superficie"
-	agua.mesh = load(MALHA_AGUA)
+	# O mesmo material estatico e compartilhado pelo rio, lago e oceano.
+	var material := load("res://materials/oceano.tres") as Material
+	var plano := PlaneMesh.new()
+	plano.size = Vector2(LADO_DO_OCEANO, LADO_DO_OCEANO)
+	plano.subdivide_width = 1
+	plano.subdivide_depth = 1
+	plano.material = material
+	agua.mesh = plano
 	agua.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	agua.gi_mode = GeometryInstance3D.GI_MODE_DISABLED
-	# A malha do pacote ocupa x de 0 a 400 e z de -400 a 0: centraliza e amplia.
-	var escala := LADO_DO_OCEANO / LADO_DA_MALHA_DE_AGUA
-	agua.scale = Vector3(escala, 1.0, escala)
-	agua.position = Vector3(-LADO_DO_OCEANO * 0.5, NIVEL_DO_MAR, LADO_DO_OCEANO * 0.5)
+	agua.position = Vector3(0.0, NIVEL_DO_MAR, 0.0)
 	raiz.add_child(agua)
 	agua.owner = raiz
 

@@ -28,6 +28,10 @@ const DIAMETRO_ORIGINAL_DA_ILHA_CPT := 397.6
 const SHADER_TERRENO_CONTINUO := preload("res://shaders/terreno_continuo.gdshader")
 const SHADER_COSTA_ORGANICA := preload("res://shaders/costa_organica.gdshader")
 const HYDROLOGY_MANAGER := preload("res://scripts/hydrology/hydrology_manager.gd")
+const NIVEL_DO_MAR := -0.35
+const RAIO_EXTERNO_DO_MAR := 4000.0
+const FAIXA_DE_ENCAIXE_DO_MODULO := 18.0
+const REBAIXO_DO_SUPORTE := 0.10
 
 ## Faixas de relevo montadas pelo build a partir do catalogo do pacote.
 const FAIXAS_GERADAS := "res://scenes/modules/faixas.json"
@@ -109,6 +113,11 @@ var comprimento_do_lago := 1
 ## Altura das paredes invisiveis que seguram o personagem na ilha.
 @export var altura_do_limite := 60.0
 
+@export_group("Depuracao")
+## Exibe amostras do cruzamento entre terreno e agua na face da foz.
+## Tambem pode ser alternado durante o jogo com F7.
+@export var debug_cruzamento_da_foz := false
+
 var _cache: Dictionary = {}
 var _celulas: Dictionary = {}
 var _celula_de_nascimento := Vector2i.ZERO
@@ -139,6 +148,7 @@ var _contorno_cpt := PackedVector2Array()
 var _centro_original_cpt := Vector2.ZERO
 var _escala_horizontal_cpt := 1.0
 var _limites_automaticos_da_foz := Vector2.INF
+var _contorno_do_mar := PackedVector2Array()
 
 
 func _ready() -> void:
@@ -189,6 +199,7 @@ func gerar() -> void:
 	# A costa vem depois do River_End para medir na propria malha os dois
 	# pontos exatos em que a agua cruza a face externa do modulo.
 	_montar_costa_organica_com_foz()
+	_montar_debug_do_cruzamento_da_foz()
 	_montar_limite()
 	_montar_marcos(raiz_detalhes)
 	# Afloramentos de porte medio e pedras pequenas saem do mesmo acervo de
@@ -197,6 +208,17 @@ func gerar() -> void:
 	_espalhar(raiz_detalhes, _rochas, quantidade_de_rochas, "Rocha", 1.4, 3.0, 700)
 	_montar_ilhotas(raiz_ilhotas)
 	_montar_nuvens(_novo_grupo("Nuvens"))
+
+
+func _input(evento: InputEvent) -> void:
+	if evento is InputEventKey:
+		var tecla := evento as InputEventKey
+		if tecla.pressed and not tecla.echo and tecla.keycode == KEY_F7:
+			debug_cruzamento_da_foz = not debug_cruzamento_da_foz
+			var debug := get_node_or_null("DebugCruzamentoDaFoz") as Node3D
+			if debug != null:
+				debug.visible = debug_cruzamento_da_foz
+			get_viewport().set_input_as_handled()
 
 
 ## Le as faixas de relevo montadas pelo build. Cada faixa e a lista de modulos
@@ -356,7 +378,7 @@ func _altura_macro_do_terreno(x: float, z: float) -> float:
 ## e refaz sua colisao. Isso evita tanto as emendas em degrau quanto a diferenca
 ## entre o que o jogador ve e a superficie onde ele pisa.
 func _deformar_modulo(modulo: Node3D, escala_vertical: float,
-		exagero_da_profundidade := 1.0) -> void:
+		exagero_da_profundidade := 1.0, ajustar_bordas := true) -> void:
 	var visual := modulo.get_node_or_null("Malha") as MeshInstance3D
 	if visual == null or visual.mesh == null:
 		return
@@ -385,14 +407,38 @@ func _deformar_modulo(modulo: Node3D, escala_vertical: float,
 		var arrays: Array = origem.surface_get_arrays(superficie)
 		var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
 		var normais: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		var posicoes_abertas := _posicoes_abertas_da_superficie(
+			arrays, transformacao_original) if ajustar_bordas else {}
 
 		for indice in range(vertices.size()):
-			var vertice := transformacao_original * vertices[indice]
+			var vertice_original := transformacao_original * vertices[indice]
+			var esta_na_abertura := posicoes_abertas.has(
+				_chave_de_posicao(vertice_original))
+			var vertice := vertice_original
 			vertice.x *= escala_horizontal
 			vertice.y *= escala_vertical_final
 			if vertice.y < 0.0:
 				vertice.y *= exagero_da_profundidade
 			vertice.z *= escala_horizontal
+			# Alguns FBX possuem pontas alguns centimetros alem dos 100 m ou uma
+			# borda elevada. Limita a pegada a celula e dissolve o relevo perto das
+			# quatro extremidades, fazendo modulos vizinhos compartilharem a mesma
+			# altura macro em vez de deixarem frestas ou abas flutuantes.
+			if ajustar_bordas:
+				var metade_da_celula := tamanho_do_modulo * 0.5
+				vertice.x = clampf(vertice.x, -metade_da_celula, metade_da_celula)
+				vertice.z = clampf(vertice.z, -metade_da_celula, metade_da_celula)
+				var distancia_da_borda := metade_da_celula - maxf(
+					absf(vertice.x), absf(vertice.z))
+				var peso_do_relevo := smoothstep(0.0,
+					minf(FAIXA_DE_ENCAIXE_DO_MODULO, metade_da_celula * 0.35),
+					distancia_da_borda)
+				vertice.y *= peso_do_relevo
+				# As malhas do pacote sao cascas abertas e o contorno nem sempre
+				# coincide com os 100 m da celula. Assentar toda aresta realmente
+				# aberta elimina abas que terminavam suspensas no meio do modulo.
+				if esta_na_abertura:
+					vertice.y = 0.0
 			var ponto_na_ilha := modulo.transform * vertice
 			vertice.y += _altura_macro_do_terreno(ponto_na_ilha.x, ponto_na_ilha.z)
 			vertices[indice] = vertice
@@ -408,6 +454,50 @@ func _deformar_modulo(modulo: Node3D, escala_vertical: float,
 	visual.mesh = malha_deformada
 	colisao.transform = Transform3D.IDENTITY
 	colisao.shape = malha_deformada.create_trimesh_shape()
+
+
+func _chave_de_posicao(ponto: Vector3) -> Vector3i:
+	return Vector3i(roundi(ponto.x * 1000.0), roundi(ponto.y * 1000.0),
+		roundi(ponto.z * 1000.0))
+
+
+## Os FBX repetem um vertice para quase todo triangulo. Primeiro solda essas
+## copias pela posicao e so depois conta arestas; as usadas uma unica vez sao o
+## contorno aberto verdadeiro da casca.
+func _posicoes_abertas_da_superficie(arrays: Array,
+		transformacao: Transform3D) -> Dictionary:
+	var vertices: PackedVector3Array = arrays[Mesh.ARRAY_VERTEX]
+	var indices: PackedInt32Array = arrays[Mesh.ARRAY_INDEX]
+	if vertices.is_empty():
+		return {}
+	if indices.is_empty():
+		indices.resize(vertices.size())
+		for i in range(vertices.size()):
+			indices[i] = i
+	var id_por_posicao := {}
+	var chaves := []
+	var ids := PackedInt32Array()
+	for vertice in vertices:
+		var chave := _chave_de_posicao(transformacao * vertice)
+		if not id_por_posicao.has(chave):
+			id_por_posicao[chave] = id_por_posicao.size()
+			chaves.append(chave)
+		ids.append(id_por_posicao[chave])
+	var contagem_das_arestas := {}
+	for i in range(0, indices.size() - 2, 3):
+		var triangulo := [indices[i], indices[i + 1], indices[i + 2]]
+		for j in range(3):
+			var id_a: int = ids[triangulo[j]]
+			var id_b: int = ids[triangulo[(j + 1) % 3]]
+			var aresta := Vector2i(mini(id_a, id_b), maxi(id_a, id_b))
+			contagem_das_arestas[aresta] = int(
+				contagem_das_arestas.get(aresta, 0)) + 1
+	var abertas := {}
+	for aresta: Vector2i in contagem_das_arestas:
+		if contagem_das_arestas[aresta] == 1:
+			abertas[chaves[aresta.x]] = true
+			abertas[chaves[aresta.y]] = true
+	return abertas
 
 
 ## Percorre a cena inteira porque alguns props guardam a malha mais de um
@@ -606,12 +696,57 @@ func _montar_terreno(raiz: Node3D) -> void:
 		_aplicar_material_continuo(modulo)
 		raiz.add_child(modulo)
 		_modulo_da_celula[Vector2i(gx, gz)] = modulo
+	_montar_suporte_dos_modulos(raiz)
+
+
+## Piso continuo ligeiramente abaixo dos modulos. Ele fecha furos existentes
+## nos FBX sem competir visualmente com a superficie original e tambem impede
+## que uma abertura acidental revele o vazio sob a ilha.
+func _montar_suporte_dos_modulos(raiz: Node3D) -> void:
+	var malha := ArrayMesh.new()
+	var vertices := PackedVector3Array()
+	var normais := PackedVector3Array()
+	var indices := PackedInt32Array()
+	var divisoes := 4
+	for celula: Vector2i in _celulas:
+		if _celulas_de_agua.has(celula):
+			continue
+		var inicio := vertices.size()
+		for z_local in range(divisoes + 1):
+			for x_local in range(divisoes + 1):
+				var x := (float(celula.x) - 0.5
+					+ float(x_local) / float(divisoes)) * tamanho_do_modulo
+				var z := (float(celula.y) - 0.5
+					+ float(z_local) / float(divisoes)) * tamanho_do_modulo
+				vertices.append(Vector3(x,
+					_altura_macro_do_terreno(x, z) - REBAIXO_DO_SUPORTE, z))
+				normais.append(Vector3.UP)
+		for z_local in range(divisoes):
+			for x_local in range(divisoes):
+				var a := inicio + z_local * (divisoes + 1) + x_local
+				var b := a + 1
+				var c := a + divisoes + 1
+				var d := c + 1
+				indices.append_array([a, d, c, a, b, d])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normais
+	arrays[Mesh.ARRAY_INDEX] = indices
+	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	malha.surface_set_material(0, _material_do_terreno())
+	var visual := MeshInstance3D.new()
+	visual.name = "SuporteContinuo"
+	visual.mesh = malha
+	visual.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(visual)
 
 
 ## Cria uma praia continua com contorno arredondado. O miolo fica alguns
 ## centimetros abaixo dos modulos, enquanto a borda mergulha no oceano; isso
 ## esconde a geometria quadrada sem causar z-fighting.
 func _montar_base_organica() -> void:
+	_contorno_do_mar.clear()
 	var malha := ArrayMesh.new()
 	var vertices := PackedVector3Array()
 	var normais := PackedVector3Array()
@@ -619,20 +754,28 @@ func _montar_base_organica() -> void:
 	var indices := PackedInt32Array()
 	# Resolucao dobrada para a enseada da foz nao ser fechada por um triangulo
 	# grande entre duas amostras do contorno.
-	var segmentos := maxi(segmentos_da_costa * 2, 192)
+	# A foz precisa de amostras curtas para que nenhum triangulo grande atravesse
+	# o ponto vermelho detectado na face do River_End.
+	var segmentos := maxi(segmentos_da_costa * 8, 768)
 	var raios_do_grid := PackedFloat32Array()
 	for i in range(segmentos):
 		var angulo := TAU * float(i) / float(segmentos)
 		raios_do_grid.append(_raio_do_grid_na_direcao(
 			Vector2(cos(angulo), sin(angulo))))
-	# Uma media curta conserva os cabos criados pelos cantos dos modulos, mas
-	# transforma os degraus de 90 graus em transicoes costeiras arredondadas.
+	# Suaviza uma vizinhanca angular larga. A media antiga de apenas tres pontos
+	# ainda copiava os cantos de 90 graus da grade e deixava a ilha quadrada.
+	# O peso triangular conserva cabos e enseadas, mas arredonda cada quina ao
+	# longo de varios segmentos da costa.
 	var raios_suaves := PackedFloat32Array()
+	var alcance_da_curva := 18
 	for i in range(segmentos):
-		var anterior := raios_do_grid[posmod(i - 1, segmentos)]
-		var atual := raios_do_grid[i]
-		var proximo := raios_do_grid[(i + 1) % segmentos]
-		raios_suaves.append(anterior * 0.2 + atual * 0.6 + proximo * 0.2)
+		var soma := 0.0
+		var soma_dos_pesos := 0.0
+		for deslocamento in range(-alcance_da_curva, alcance_da_curva + 1):
+			var peso := float(alcance_da_curva + 1 - abs(deslocamento))
+			soma += raios_do_grid[posmod(i + deslocamento, segmentos)] * peso
+			soma_dos_pesos += peso
+		raios_suaves.append(soma / soma_dos_pesos)
 	var angulo_da_foz := INF
 	var terminal_da_foz := {}
 	_limites_automaticos_da_foz = Vector2.INF
@@ -644,6 +787,20 @@ func _montar_base_organica() -> void:
 			terminal_da_foz = terminal
 			_limites_automaticos_da_foz = _limites_da_agua_no_modulo_de_foz(
 				terminal, angulo_da_foz)
+	# A abertura nao pode ficar presa aos passos regulares do anel. Substitui os
+	# dois vertices mais proximos pelos angulos EXATOS usados pelos marcadores
+	# vermelhos. Assim, borda e centro da esfera compartilham a mesma coordenada
+	# na face do River_End, sem arredondamento para um dos 768 segmentos.
+	var angulos_da_costa := PackedFloat32Array()
+	for i in range(segmentos):
+		angulos_da_costa.append(TAU * float(i) / float(segmentos))
+	if angulo_da_foz < INF and _limites_automaticos_da_foz != Vector2.INF:
+		for limite in [_limites_automaticos_da_foz.x,
+				_limites_automaticos_da_foz.y]:
+			var angulo_exato := fposmod(angulo_da_foz + limite, TAU)
+			var indice_mais_proximo := posmod(roundi(
+				angulo_exato * float(segmentos) / TAU), segmentos)
+			angulos_da_costa[indice_mais_proximo] = angulo_exato
 	# O tom interno acompanha a media do shader continuo para que a borda dos
 	# modulos desapareca visualmente sobre a base.
 	# O alpha informa ao shader quanto misturar com areia: zero no miolo e um
@@ -655,10 +812,16 @@ func _montar_base_organica() -> void:
 	normais.append(Vector3.UP)
 	cores.append(cor_terreno)
 	for i in range(segmentos):
-		var angulo := TAU * float(i) / float(segmentos)
+		var angulo := angulos_da_costa[i]
 		var direcao := Vector2(cos(angulo), sin(angulo))
-		var raio_interno := maxf(raios_suaves[i] - tamanho_do_modulo * 0.04, 1.0)
-		var raio_externo := raio_interno + largura_da_costa
+		# A praia comeca depois da quina mais distante do grid nesta direcao.
+		# Usar somente o raio suavizado fazia a curva cortar por dentro de alguns
+		# quadrados e deixava pontas dos modulos expostas sobre o mar. A borda
+		# externa continua baseada no raio suave para preservar a silhueta curva.
+		var raio_interno := maxf(raios_do_grid[i] + 1.0,
+			raios_suaves[i] - tamanho_do_modulo * 0.04)
+		var raio_externo := maxf(raios_suaves[i] + largura_da_costa,
+			raio_interno + largura_da_costa * 0.35)
 		var influencia_da_foz := 0.0
 		if angulo_da_foz < INF and _limites_automaticos_da_foz != Vector2.INF:
 			var diferenca_angular := wrapf(angulo - angulo_da_foz, -PI, PI)
@@ -681,6 +844,25 @@ func _montar_base_organica() -> void:
 			raio_externo = lerpf(raio_externo, raio_interno, influencia_da_foz)
 		var altura_interna := lerpf(-0.03, -profundidade_da_beirada - 0.35,
 			influencia_da_foz)
+		# Guarda o ponto exato em que a rampa costeira cruza o nivel do mar.
+		# A malha do oceano usara este mesmo contorno como borda interna, sem
+		# continuar por baixo da terra e disputar pixels com ela.
+		var raio_do_mar := raio_interno
+		var variacao_da_altura := -profundidade_da_beirada - altura_interna
+		if absf(variacao_da_altura) > 0.000001:
+			var proporcao_do_cruzamento := clampf(
+				(NIVEL_DO_MAR - altura_interna) / variacao_da_altura, 0.0, 1.0)
+			raio_do_mar = lerpf(raio_interno, raio_externo,
+				proporcao_do_cruzamento)
+		_contorno_do_mar.append(direcao * raio_do_mar)
+		# Este anel termina pouco antes da face. O leque central para aqui; apenas
+		# a estreita faixa seguinte sera recortada no intervalo verde do debug.
+		# O apoio fica no mesmo plano da borda. Recuar este anel criava uma parede
+		# vertical 15 m atras do centro das esferas vermelhas.
+		var ponto_de_apoio := direcao * raio_interno
+		vertices.append(Vector3(ponto_de_apoio.x, -0.03, ponto_de_apoio.y))
+		normais.append(Vector3.UP)
+		cores.append(cor_terreno)
 		vertices.append(Vector3(direcao.x * raio_interno, altura_interna,
 			direcao.y * raio_interno))
 		normais.append(Vector3.UP)
@@ -692,12 +874,46 @@ func _montar_base_organica() -> void:
 
 	for i in range(segmentos):
 		var proximo := (i + 1) % segmentos
-		var interno := 1 + i * 2
-		var externo := interno + 1
-		var interno_proximo := 1 + proximo * 2
-		var externo_proximo := interno_proximo + 1
+		var apoio := 1 + i * 3
+		var interno := apoio + 1
+		var externo := apoio + 2
+		var apoio_proximo := 1 + proximo * 3
+		var interno_proximo := apoio_proximo + 1
+		var externo_proximo := apoio_proximo + 2
 
-		indices.append_array([0, interno, interno_proximo])
+		# Decide pelo centro angular do triangulo. Usar OR nas duas pontas
+		# alargava o corte em uma amostra inteira e deslocava levemente a margem.
+		var angulo_atual := angulos_da_costa[i]
+		var angulo_seguinte := angulos_da_costa[proximo]
+		var arco := fposmod(angulo_seguinte - angulo_atual, TAU)
+		var angulo_do_meio := fposmod(angulo_atual + arco * 0.5, TAU)
+		var diferenca_do_meio := wrapf(angulo_do_meio - angulo_da_foz, -PI, PI)
+		var abre_foz := angulo_da_foz < INF \
+			and _limites_automaticos_da_foz != Vector2.INF \
+			and diferenca_do_meio >= _limites_automaticos_da_foz.x \
+			and diferenca_do_meio <= _limites_automaticos_da_foz.y
+		if not abre_foz:
+			indices.append_array([0, apoio, apoio_proximo])
+		else:
+			# Mantem a base fechada, mas abaixo da lamina: o lago cobre esta peca
+			# rebaixada e nenhuma fatia de terreno aparece sobre a agua.
+			var inicio_rebaixado := vertices.size()
+			var altura_rebaixada := HydrologyPlanner.WATER_LEVEL_OFFSET - 0.35
+			vertices.append_array([
+				Vector3(0.0, altura_rebaixada, 0.0),
+				Vector3(vertices[apoio].x, altura_rebaixada, vertices[apoio].z),
+				Vector3(vertices[apoio_proximo].x, altura_rebaixada,
+					vertices[apoio_proximo].z),
+			])
+			normais.append_array([Vector3.UP, Vector3.UP, Vector3.UP])
+			cores.append_array([cor_terreno, cor_terreno, cor_terreno])
+			indices.append_array([inicio_rebaixado, inicio_rebaixado + 1,
+				inicio_rebaixado + 2])
+		# Se qualquer ponta do pequeno quadrilatero toca o trecho verde, ele nao
+		# e criado. A margem passa a terminar no cruzamento vermelho.
+		if not abre_foz:
+			indices.append_array([apoio, interno_proximo, apoio_proximo])
+			indices.append_array([apoio, interno, interno_proximo])
 		indices.append_array([interno, externo_proximo, interno_proximo])
 		indices.append_array([interno, externo, externo_proximo])
 
@@ -730,6 +946,42 @@ func _montar_base_organica() -> void:
 	corpo.add_child(colisao)
 
 
+## Substitui o plano que atravessava toda a ilha por um anel. A borda interna
+## compartilha o cruzamento geometrico entre a costa e o nivel do mar; portanto
+## agua e terreno se encontram sem superficies sobrepostas (z-fighting).
+func recortar_oceano(superficie: MeshInstance3D) -> void:
+	if superficie == null or _contorno_do_mar.size() < 3:
+		return
+	var malha := ArrayMesh.new()
+	var vertices := PackedVector3Array()
+	var normais := PackedVector3Array()
+	var indices := PackedInt32Array()
+	var quantidade := _contorno_do_mar.size()
+	for ponto_interno in _contorno_do_mar:
+		var direcao := ponto_interno.normalized()
+		vertices.append(Vector3(ponto_interno.x, 0.0, ponto_interno.y))
+		vertices.append(Vector3(direcao.x * RAIO_EXTERNO_DO_MAR, 0.0,
+			direcao.y * RAIO_EXTERNO_DO_MAR))
+		normais.append(Vector3.UP)
+		normais.append(Vector3.UP)
+	for i in range(quantidade):
+		var proximo := (i + 1) % quantidade
+		var interno := i * 2
+		var externo := interno + 1
+		var interno_proximo := proximo * 2
+		var externo_proximo := interno_proximo + 1
+		indices.append_array([interno, externo_proximo, interno_proximo])
+		indices.append_array([interno, externo, externo_proximo])
+	var arrays := []
+	arrays.resize(Mesh.ARRAY_MAX)
+	arrays[Mesh.ARRAY_VERTEX] = vertices
+	arrays[Mesh.ARRAY_NORMAL] = normais
+	arrays[Mesh.ARRAY_INDEX] = indices
+	malha.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, arrays)
+	malha.surface_set_material(0, load("res://materials/oceano.tres"))
+	superficie.mesh = malha
+
+
 ## Rasteriza a borda externa do proprio River_End e encontra separadamente o
 ## primeiro e o ultimo quadrado da mascara de agua.
 func _limites_da_agua_no_modulo_de_foz(terminal: Dictionary,
@@ -742,44 +994,56 @@ func _limites_da_agua_no_modulo_de_foz(terminal: Dictionary,
 	var centro := Vector2(celula.x, celula.y) * tamanho_do_modulo
 	var metade := tamanho_do_modulo * 0.5
 	var passo := tamanho_do_modulo / float(resolucao - 1)
-	var mascara: Array[bool] = []
-	mascara.resize(resolucao * resolucao)
-	for gz in range(resolucao):
-		for gx in range(resolucao):
-			var x := centro.x - metade + float(gx) * passo
-			var z := centro.y - metade + float(gz) * passo
-			var macro := _altura_macro_do_terreno(x, z)
-			mascara[gz * resolucao + gx] = grade[gz * resolucao + gx] < \
-				macro - WaterGeometryGenerator.MINIMUM_CHANNEL_DEPTH
-	var dilatada := mascara.duplicate()
-	for gz in range(resolucao):
-		for gx in range(resolucao):
-			if not mascara[gz * resolucao + gx]: continue
-			for dz in range(-1, 2):
-				for dx in range(-1, 2):
-					var nx := gx + dx
-					var nz := gz + dz
-					if nx >= 0 and nx < resolucao and nz >= 0 and nz < resolucao:
-						dilatada[nz * resolucao + nx] = true
-	var menor := INF
-	var maior := -INF
-	for i in range(resolucao - 1):
-		var gx := i if lado in [RiverConnection.Side.NORTH, RiverConnection.Side.SOUTH] else (resolucao - 2 if lado == RiverConnection.Side.EAST else 0)
-		var gz := i if lado in [RiverConnection.Side.EAST, RiverConnection.Side.WEST] else (resolucao - 2 if lado == RiverConnection.Side.SOUTH else 0)
-		if not dilatada[gz * resolucao + gx]: continue
-		for extremo in [i, i + 1]:
-			var lateral := -metade + float(extremo) * passo
-			var ponto := Vector2.ZERO
-			match lado:
-				RiverConnection.Side.NORTH: ponto = centro + Vector2(lateral, -metade)
-				RiverConnection.Side.EAST: ponto = centro + Vector2(metade, lateral)
-				RiverConnection.Side.SOUTH: ponto = centro + Vector2(lateral, metade)
-				_: ponto = centro + Vector2(-metade, lateral)
-			var diferenca := wrapf(atan2(ponto.y, ponto.x) - angulo_central, -PI, PI)
-			menor = minf(menor, diferenca)
-			maior = maxf(maior, diferenca)
-	if menor == INF: return Vector2.INF
-	return Vector2(menor, maior)
+	var diferencas := PackedFloat32Array()
+	for i in range(resolucao):
+		var gx := i if lado in [RiverConnection.Side.NORTH,
+			RiverConnection.Side.SOUTH] else (resolucao - 1 if lado == RiverConnection.Side.EAST else 0)
+		var gz := i if lado in [RiverConnection.Side.EAST,
+			RiverConnection.Side.WEST] else (resolucao - 1 if lado == RiverConnection.Side.SOUTH else 0)
+		var lateral := -metade + float(i) * passo
+		var ponto := _ponto_na_face_da_foz(centro, metade, lado, lateral)
+		var nivel_da_agua := _altura_macro_do_terreno(ponto.x, ponto.y) \
+			+ HydrologyPlanner.WATER_LEVEL_OFFSET + 0.05
+		diferencas.append(grade[gz * resolucao + gx] - nivel_da_agua)
+	var primeiro_molhado := -1
+	var ultimo_molhado := -1
+	for i in range(resolucao):
+		if diferencas[i] <= 0.0:
+			if primeiro_molhado < 0: primeiro_molhado = i
+			ultimo_molhado = i
+	if primeiro_molhado < 0:
+		return Vector2.INF
+	# Se a agua ja ocupa a primeira amostra, nao existe cruzamento nessa ponta.
+	# Prolonga a abertura pela costa em vez de inventar uma parede no canto.
+	var lateral_a := -metade - largura_da_costa \
+		if primeiro_molhado == 0 else -metade
+	if primeiro_molhado > 0:
+		var seco_a := diferencas[primeiro_molhado - 1]
+		var molhado_a := diferencas[primeiro_molhado]
+		var t_a := clampf(seco_a / (seco_a - molhado_a), 0.0, 1.0)
+		lateral_a = -metade + (float(primeiro_molhado - 1) + t_a) * passo
+	# Mesmo tratamento simetrico quando a agua chega a ultima amostra da face.
+	var lateral_b := metade + largura_da_costa \
+		if ultimo_molhado == resolucao - 1 else metade
+	if ultimo_molhado < resolucao - 1:
+		var molhado_b := diferencas[ultimo_molhado]
+		var seco_b := diferencas[ultimo_molhado + 1]
+		var t_b := clampf(molhado_b / (molhado_b - seco_b), 0.0, 1.0)
+		lateral_b = -metade + (float(ultimo_molhado) + t_b) * passo
+	var ponto_a := _ponto_na_face_da_foz(centro, metade, lado, lateral_a)
+	var ponto_b := _ponto_na_face_da_foz(centro, metade, lado, lateral_b)
+	var angulo_a := wrapf(atan2(ponto_a.y, ponto_a.x) - angulo_central, -PI, PI)
+	var angulo_b := wrapf(atan2(ponto_b.y, ponto_b.x) - angulo_central, -PI, PI)
+	return Vector2(minf(angulo_a, angulo_b), maxf(angulo_a, angulo_b))
+
+
+func _ponto_na_face_da_foz(centro: Vector2, metade: float, lado: int,
+		lateral: float) -> Vector2:
+	match lado:
+		RiverConnection.Side.NORTH: return centro + Vector2(lateral, -metade)
+		RiverConnection.Side.EAST: return centro + Vector2(metade, lateral)
+		RiverConnection.Side.SOUTH: return centro + Vector2(lateral, metade)
+		_: return centro + Vector2(-metade, lateral)
 
 
 ## Distancia radial ate o plano da face externa do modulo terminal. Isso
@@ -816,6 +1080,106 @@ func _montar_costa_organica_com_foz() -> void:
 
 func limites_automaticos_da_foz() -> Vector2:
 	return _limites_automaticos_da_foz
+
+
+## Cria somente marcadores visuais; nao modifica terreno, agua ou colisao.
+## Verde = terreno abaixo da lamina, amarelo = terra acima da lamina e
+## vermelho = transicao entre os dois estados na face externa do River_End.
+func _montar_debug_do_cruzamento_da_foz() -> void:
+	var anterior := get_node_or_null("DebugCruzamentoDaFoz")
+	if anterior != null:
+		anterior.queue_free()
+	if _hydrology == null:
+		return
+	var terminal: Dictionary = _hydrology.ocean_terminal()
+	if terminal.is_empty():
+		return
+	var resolucao := WaterGeometryGenerator.MASK_RESOLUTION
+	var grade := _grade_de_altura(terminal["cell"], resolucao)
+	if grade.is_empty():
+		return
+	var raiz := Node3D.new()
+	raiz.name = "DebugCruzamentoDaFoz"
+	raiz.visible = debug_cruzamento_da_foz
+	add_child(raiz)
+	var material_agua := _material_debug(Color(0.05, 1.0, 0.2))
+	var material_terra := _material_debug(Color(1.0, 0.82, 0.05))
+	var material_cruzamento := _material_debug(Color(1.0, 0.03, 0.03))
+	var lado := int(terminal["side"])
+	var celula: Vector2i = terminal["cell"]
+	var centro := Vector2(celula.x, celula.y) * tamanho_do_modulo
+	var metade := tamanho_do_modulo * 0.5
+	var passo := tamanho_do_modulo / float(resolucao - 1)
+	var estados := PackedByteArray()
+	var pontos := PackedVector3Array()
+	var diferencas_de_altura := PackedFloat32Array()
+	for i in range(resolucao):
+		var gx := i if lado in [RiverConnection.Side.NORTH,
+			RiverConnection.Side.SOUTH] else (resolucao - 1 if lado == RiverConnection.Side.EAST else 0)
+		var gz := i if lado in [RiverConnection.Side.EAST,
+			RiverConnection.Side.WEST] else (resolucao - 1 if lado == RiverConnection.Side.SOUTH else 0)
+		var lateral := -metade + float(i) * passo
+		var plano := Vector2.ZERO
+		match lado:
+			RiverConnection.Side.NORTH: plano = centro + Vector2(lateral, -metade)
+			RiverConnection.Side.EAST: plano = centro + Vector2(metade, lateral)
+			RiverConnection.Side.SOUTH: plano = centro + Vector2(lateral, metade)
+			_: plano = centro + Vector2(-metade, lateral)
+		var altura_terra: float = grade[gz * resolucao + gx]
+		var altura_agua := _altura_macro_do_terreno(plano.x, plano.y) \
+			+ HydrologyPlanner.WATER_LEVEL_OFFSET
+		var tem_agua := altura_terra <= altura_agua + 0.05
+		diferencas_de_altura.append(altura_terra - altura_agua - 0.05)
+		estados.append(int(tem_agua))
+		var ponto := Vector3(plano.x, maxf(altura_terra, altura_agua) + 2.0,
+			plano.y)
+		pontos.append(ponto)
+		_adicionar_marcador_debug(raiz, ponto,
+			material_agua if tem_agua else material_terra, 0.85)
+	for i in range(1, resolucao):
+		if estados[i] == estados[i - 1]:
+			continue
+		var anterior_delta := diferencas_de_altura[i - 1]
+		var atual_delta := diferencas_de_altura[i]
+		var t := clampf(anterior_delta / (anterior_delta - atual_delta), 0.0, 1.0)
+		var cruzamento := pontos[i - 1].lerp(pontos[i], t)
+		_adicionar_marcador_debug(raiz, cruzamento + Vector3.UP * 1.5,
+			material_cruzamento, 2.2)
+		var rotulo := Label3D.new()
+		rotulo.text = "CRUZAMENTO"
+		rotulo.modulate = Color.RED
+		rotulo.outline_size = 8
+		rotulo.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+		rotulo.position = cruzamento + Vector3.UP * 5.0
+		raiz.add_child(rotulo)
+	var instrucao := Label3D.new()
+	instrucao.text = "F7: debug da foz | VERDE=agua | AMARELO=terra | VERMELHO=cruzamento"
+	instrucao.modulate = Color.WHITE
+	instrucao.outline_size = 10
+	instrucao.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	instrucao.position = terminal["position"] + Vector3.UP * 12.0
+	raiz.add_child(instrucao)
+
+
+func _material_debug(cor: Color) -> StandardMaterial3D:
+	var material := StandardMaterial3D.new()
+	material.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	material.albedo_color = cor
+	material.no_depth_test = true
+	return material
+
+
+func _adicionar_marcador_debug(raiz: Node3D, posicao: Vector3,
+		material: Material, tamanho: float) -> void:
+	var marcador := MeshInstance3D.new()
+	var esfera := SphereMesh.new()
+	esfera.radius = tamanho
+	esfera.height = tamanho * 2.0
+	marcador.mesh = esfera
+	marcador.material_override = material
+	marcador.position = posicao
+	marcador.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	raiz.add_child(marcador)
 
 
 ## Preenche o espaco que os triangulos radiais deixam ao redor da foz. Sao
@@ -1573,7 +1937,7 @@ func _montar_modulos_do_rio(raiz: Node3D) -> void:
 		# Escala vertical igual a horizontal: canal e bacia precisam manter a
 		# propria proporcao, senao viram riscos rasos no chao.
 		_deformar_modulo(peca, escala_uniforme,
-			exagero_da_profundidade_do_rio)
+			exagero_da_profundidade_do_rio, false)
 		_aplicar_material_continuo(peca)
 		raiz.add_child(peca)
 		_modulo_da_celula[celula] = peca

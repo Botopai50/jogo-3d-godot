@@ -1,11 +1,17 @@
-[gd_scene format=3]
+[gd_scene load_steps=3 format=3]
 
-[ext_resource type="ArrayMesh" path="res://scenes/modules/malhas/Water_H_a_01.res" id="1_lclyj"]
+[ext_resource type="Material" path="res://materials/oceano.tres" id="1_agua"]
 
-[node name="Oceano" type="Node3D" unique_id=2040075684]
+[sub_resource type="PlaneMesh" id="Plane_oceano"]
+material = ExtResource("1_agua")
+size = Vector2(8000, 8000)
+subdivide_width = 1
+subdivide_depth = 1
 
-[node name="Superficie" type="MeshInstance3D" parent="." unique_id=1892876269]
-transform = Transform3D(20, 0, 0, 0, 1, 0, 0, 0, 20, -4000, -0.35, 4000)
+[node name="Oceano" type="Node3D"]
+
+[node name="Superficie" type="MeshInstance3D" parent="."]
+position = Vector3(0, -0.35, 0)
 cast_shadow = 0
 gi_mode = 0
-mesh = ExtResource("1_lclyj")
+mesh = SubResource("Plane_oceano")

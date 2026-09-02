@@ -22,9 +22,15 @@ func _init() -> void:
 	var e1 := ResourceSaver.save(terreno, "res://materials/terreno_atlas.tres")
 	print("materials/terreno_atlas.tres -> ", error_string(e1))
 
-	var oceano := ShaderMaterial.new()
-	oceano.resource_name = "Oceano"
-	oceano.shader = load("res://shaders/oceano.gdshader")
+	# Base simples compartilhada pela agua do rio, lago e mar. Os shaders serao
+	# aplicados depois, sobre uma geometria comprovadamente estavel.
+	var oceano := StandardMaterial3D.new()
+	oceano.resource_name = "Agua simples compartilhada"
+	oceano.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	oceano.albedo_color = Color(0.08, 0.34, 0.58, 1.0)
+	oceano.metallic = 0.0
+	oceano.roughness = 1.0
+	oceano.cull_mode = BaseMaterial3D.CULL_DISABLED
 	var e2 := ResourceSaver.save(oceano, "res://materials/oceano.tres")
 	print("materials/oceano.tres -> ", error_string(e2))
 

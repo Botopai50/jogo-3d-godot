@@ -47,12 +47,16 @@ extends CharacterBody3D
 @export_range(20.0, 2000.0, 1.0) var salto_maximo_do_mouse := 200.0
 ## Quanto tempo ignorar o mouse logo depois de capturar o ponteiro, em segundos.
 @export_range(0.0, 1.0, 0.01) var carencia_apos_capturar := 0.2
+## Velocidade com que a camera acompanha o corpo. Filtra os pequenos degraus
+## verticais causados pelos triangulos do terreno sem atrasar perceptivelmente.
+@export_range(1.0, 60.0, 1.0) var suavizacao_da_camera := 18.0
 
 @export_group("Seguranca")
 ## Abaixo desta altura o personagem volta ao ponto de partida.
 @export var altura_de_resgate := -40.0
 
 @onready var pivo_da_camera: Node3D = $PivoDaCamera
+@onready var camera: Camera3D = $PivoDaCamera/Camera
 
 var _transformada_inicial: Transform3D
 var _inclinacao := 0.0
@@ -62,7 +66,20 @@ var _modo_voo := false
 
 func _ready() -> void:
 	_transformada_inicial = global_transform
+	# A camera passa a acompanhar o pivo no frame visual, em vez de herdar cada
+	# pequeno salto discreto do CharacterBody durante o passo da fisica.
+	camera.top_level = true
+	camera.physics_interpolation_mode = Node.PHYSICS_INTERPOLATION_MODE_OFF
+	camera.global_transform = pivo_da_camera.global_transform
 	capturar_mouse()
+
+
+func _process(delta: float) -> void:
+	var alvo := pivo_da_camera.global_transform
+	var peso := 1.0 - exp(-suavizacao_da_camera * delta)
+	var origem := camera.global_position.lerp(alvo.origin, peso)
+	# A rotacao do mouse permanece imediata; somente a posicao recebe o filtro.
+	camera.global_transform = Transform3D(alvo.basis, origem)
 
 
 ## Define onde o personagem comeca e para onde ele volta se cair do cenario.
@@ -71,6 +88,9 @@ func definir_nascimento(posicao: Vector3) -> void:
 	global_position = posicao
 	velocity = Vector3.ZERO
 	_transformada_inicial = global_transform
+	reset_physics_interpolation()
+	if is_instance_valid(camera):
+		camera.global_transform = pivo_da_camera.global_transform
 
 
 func capturar_mouse() -> void:
@@ -208,3 +228,6 @@ func _processar_voo(delta: float) -> void:
 func voltar_ao_inicio() -> void:
 	velocity = Vector3.ZERO
 	global_transform = _transformada_inicial
+	reset_physics_interpolation()
+	if is_instance_valid(camera):
+		camera.global_transform = pivo_da_camera.global_transform

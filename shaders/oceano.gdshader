@@ -7,10 +7,10 @@ render_mode specular_schlick_ggx, cull_disabled;
 
 uniform vec3 cor_rasa : source_color = vec3(0.13, 0.47, 0.55);
 uniform vec3 cor_profunda : source_color = vec3(0.02, 0.11, 0.22);
-uniform float escala_das_ondas = 0.045;
-uniform float velocidade_das_ondas = 0.35;
-uniform float intensidade_da_normal = 0.35;
-uniform float rugosidade = 0.06;
+uniform float escala_das_ondas = 0.018;
+uniform float velocidade_das_ondas = 0.18;
+uniform float intensidade_da_normal = 0.025;
+uniform float rugosidade = 0.52;
 
 varying vec3 posicao_no_mundo;
 
@@ -27,7 +27,9 @@ void vertex() {
 void fragment() {
 	vec2 p = posicao_no_mundo.xz * escala_das_ondas;
 	float t = TIME * velocidade_das_ondas;
-	float e = 0.35;
+	// Uma amostra mais larga produz ondulacao suave e evita que varias faixas
+	// especulares atravessem pixels diferentes a cada passo da camera.
+	float e = 0.75;
 	float h = onda(p, t);
 	float dx = onda(p + vec2(e, 0.0), t) - h;
 	float dz = onda(p + vec2(0.0, e), t) - h;
@@ -37,9 +39,10 @@ void fragment() {
 	vec3 n = normalize(vec3(-dx * intensidade_da_normal, 1.0, -dz * intensidade_da_normal));
 	NORMAL = normalize((VIEW_MATRIX * vec4(n, 0.0)).xyz);
 
-	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 3.0);
-	ALBEDO = mix(cor_profunda, cor_rasa, clamp(0.25 + fresnel * 0.65 + h * 0.05, 0.0, 1.0));
+	float fresnel = pow(1.0 - clamp(dot(NORMAL, VIEW), 0.0, 1.0), 5.0);
+	ALBEDO = mix(cor_profunda, cor_rasa,
+		clamp(0.34 + fresnel * 0.22 + h * 0.008, 0.0, 1.0));
 	ROUGHNESS = rugosidade;
 	METALLIC = 0.0;
-	SPECULAR = 0.7;
+	SPECULAR = 0.08;
 }

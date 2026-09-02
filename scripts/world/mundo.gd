@@ -12,6 +12,7 @@ extends Node3D
 func _ready() -> void:
 	# A ilha se monta no proprio _ready, que roda antes deste por ser filho,
 	# entao o ponto de nascimento ja esta disponivel aqui.
+	ilha.recortar_oceano(oceano.get_node_or_null("Superficie") as MeshInstance3D)
 	personagem.definir_nascimento(ilha.posicao_de_nascimento())
 
 

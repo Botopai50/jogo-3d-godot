@@ -50,6 +50,9 @@ func rodar() -> void:
 
 	# Vista superior ortografica da ilha inteira, para conferir o formato e a costa.
 	var camera: Camera3D = pivo.get_node("Camera")
+	# A partir daqui a ferramenta posiciona a camera manualmente; desliga apenas
+	# o seguidor visual do personagem para ele nao sobrescrever esses enquadramentos.
+	personagem.set_process(false)
 	camera.top_level = true
 	camera.projection = Camera3D.PROJECTION_ORTHOGONAL
 	var raio_da_ilha: float = ilha.raio_em_metros()
@@ -88,6 +91,9 @@ func rodar() -> void:
 		if hydrology != null:
 			var terminal: Dictionary = hydrology.ocean_terminal()
 			if not terminal.is_empty():
+				var debug_foz: Node3D = ilha.get_node_or_null("DebugCruzamentoDaFoz")
+				if debug_foz != null:
+					debug_foz.visible = true
 				var foz: Vector3 = terminal["position"]
 				var radial := Vector3(foz.x, 0.0, foz.z).normalized()
 				var centro_da_foz: Vector3 = foz + radial * float(ilha.largura_da_costa) * 0.45
@@ -104,5 +110,15 @@ func rodar() -> void:
 				camera.look_at(centro_da_foz, Vector3.UP)
 				await esperar(20)
 				await capturar("foz_zoom_lateral")
+
+				# Perfil paralelo a face do modulo, util para revelar deslocamentos
+				# horizontais que ficam escondidos na vista frontal.
+				var lado := int(terminal["side"])
+				var eixo_lateral := Vector3.RIGHT if lado in [
+					RiverConnection.Side.NORTH, RiverConnection.Side.SOUTH] else Vector3.FORWARD
+				camera.global_position = foz + eixo_lateral * 210.0 + Vector3.UP * 38.0
+				camera.look_at(foz + Vector3.UP * 2.0, Vector3.UP)
+				await esperar(20)
+				await capturar("foz_zoom_perfil")
 
 	quit()
