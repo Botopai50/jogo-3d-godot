@@ -46,7 +46,14 @@ func rodar() -> void:
 		if n is MeshInstance3D and (n as MeshInstance3D).mesh:
 			var m: Mesh = (n as MeshInstance3D).mesh
 			for si in range(m.get_surface_count()):
-				triangulos += m.surface_get_arrays(si)[Mesh.ARRAY_INDEX].size() / 3
+				var arrays: Array = m.surface_get_arrays(si)
+				# A lamina de agua e desenhada sem indices: nesse caso cada
+				# trinca de vertices ja e um triangulo.
+				var indices: Variant = arrays[Mesh.ARRAY_INDEX]
+				if indices == null:
+					triangulos += (arrays[Mesh.ARRAY_VERTEX] as PackedVector3Array).size() / 3
+				else:
+					triangulos += (indices as PackedInt32Array).size() / 3
 	print("  modulos de terreno: %d" % modulos)
 	print("  corpos estaticos:   %d" % corpos)
 	print("  paredes de limite:  %d" % limite.get_child_count())
@@ -203,6 +210,50 @@ func rodar() -> void:
 			secas += 1
 	print("  pecas de agua secas: %d de %d" % [secas, ilha._pecas_escolhidas.size()])
 	checar(secas == 0, "nenhuma peca de rio ou lago fica seca", "(%d secas)" % secas)
+
+	# Uma peca cheia de agua ainda pode ficar isolada da vizinha: o canal das
+	# pecas do pacote so desce 2 m nas bordas, e bastava o relevo inclinar a
+	# celula para a soleira subir acima da lamina. O rio ficava partido, com
+	# agua dos dois lados e uma lombada seca no meio. A medida aqui e quantos
+	# metros da borda partilhada ficam abaixo da lamina dos dois lados.
+	var lado_do_modulo: float = ilha.tamanho_do_modulo
+	var grades := {}
+	for celula in ilha._celulas_de_agua.keys():
+		grades[celula] = ilha._grade_de_altura(celula, 49)
+	var niveis: Dictionary = ilha._niveis_da_agua(grades)
+	var juncoes := 0
+	var partidas := 0
+	var mais_estreita := INF
+	for celula in ilha._celulas_de_agua.keys():
+		for direcao in [Vector2i(1, 0), Vector2i(0, 1)]:
+			var vizinha: Vector2i = celula + direcao
+			if not ilha._celulas_de_agua.has(vizinha):
+				continue
+			if not (niveis.has(celula) and niveis.has(vizinha)):
+				continue
+			juncoes += 1
+			var amostras := 200
+			var molhadas := 0
+			for k in range(amostras + 1):
+				var t := float(k) / float(amostras) - 0.5
+				var ponto := Vector2(
+					(float(celula.x) + (0.5 if direcao.x != 0 else t)) * lado_do_modulo,
+					(float(celula.y) + (0.5 if direcao.y != 0 else t)) * lado_do_modulo)
+				var altura: float = ilha._altura_do_chao(ponto.x, ponto.y)
+				var nivel: float = minf(
+					ilha._nivel_no_ponto(niveis[celula], ponto),
+					ilha._nivel_no_ponto(niveis[vizinha], ponto))
+				if altura < nivel:
+					molhadas += 1
+			var largura: float = float(molhadas) / float(amostras) * lado_do_modulo
+			mais_estreita = minf(mais_estreita, largura)
+			if largura < 2.0:
+				partidas += 1
+				print("       partida: %s -> %s (%.1f m molhados)" % [
+					str(celula), str(vizinha), largura])
+	print("  juncoes entre pecas de agua: %d | mais estreita: %.1f m" % [juncoes, mais_estreita])
+	checar(partidas == 0, "a agua atravessa todas as juncoes entre pecas",
+		"(a mais estreita tem %.1f m)" % mais_estreita)
 
 	# Nenhuma celula pode receber terreno comum e peca de rio ao mesmo tempo.
 	var repetidas := 0

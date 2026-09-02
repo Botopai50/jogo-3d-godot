@@ -107,9 +107,27 @@ abaixo do nível daquela célula. Uma faixa de largura fixa não servia: a depre
 `CPT_River_End` é um poço largo, e a faixa passava ao lado dele deixando a peça seca.
 
 O nível é montado da foz para a nascente e **nunca desce ao subir o rio** — uma poça no meio do
-leito enche e a água segue, em vez de a lâmina mergulhar atrás do fundo. Há um teto por célula,
-a sete décimos do caminho entre o fundo e o terreno típico da peça, para a água ficar dentro da
-depressão em vez de alagar a peça inteira até a borda.
+leito enche e a água segue, em vez de a lâmina mergulhar atrás do fundo. Dentro da célula a
+lâmina acompanha o caimento, da borda de jusante à de montante, e cada triângulo da grade é
+recortado no nível da água, com o corte caindo onde a superfície cruza de verdade: por isso a
+margem sai curva em vez de escadinha.
+
+O teto de cada célula é **a altura em que a água escaparia pelos lados fechados**, medida na
+borda. Antes era uma fração do relevo típico da peça, e essa fração arbitrária fechava a lâmina
+abaixo da soleira da peça seguinte: o rio ficava partido, com água dos dois lados e uma lombada
+seca no meio (na nascente o teto dava 12,66 m contra uma soleira de 14,22 m). Em cada borda
+partilhada a lâmina agora tem de cobrir a soleira.
+
+**O corredor do rio é aplainado.** O canal das peças do pacote só desce 2 m nas bordas, e o
+relevo macro inclinava cada célula cerca de 1,8 m, o que quase anulava esse entalhe. Aplainando
+cada célula de rio na altura natural do próprio ponto — sem erguer aterro no campo em volta —
+a geometria da peça volta a mandar e o entalhe vira um vale. A junção mais estreita passou de
+seca a **9,4 m de largura molhada**.
+
+A foz cai numa peça de lago, o vertedouro. Como a borda entre os dois não desce abaixo da
+soleira, o rio chega alguns metros acima da lâmina do lago; a célula do vertedouro cai do nível
+do rio, na borda partilhada, até o nível do lago do outro lado, em vez de a lâmina ficar
+pendurada sobre a margem.
 
 Entre as peças que servem para um trecho reto, algumas atravessam a célula na diagonal
 (`CPT_River_L_c_01` entra a +0,37 e sai a −0,34). O gerador penaliza essa travessia, senão o
@@ -187,9 +205,11 @@ godot --headless --path . --script tools/build_world.gd      # oceano, ilha e ce
 
 ## Testes
 
-`tools/testar.gd` roda o jogo sem janela e confere caminhada, corrida, pulo, o bloqueio do
-pulo no ar, a colisão com o terreno, o limite da ilha e os limites da câmera. É o mesmo
-teste que roda no GitHub Actions antes do export:
+`tools/testar.gd` roda o jogo sem janela e faz 35 checagens: caminhada, corrida, pulo, o
+bloqueio do pulo no ar, a colisão com o terreno, o limite da ilha, os limites da câmera, a
+colisão dos props, e — vértice a vértice na lâmina já montada — que nenhuma água fica fora dos
+módulos `CPT_River`, que nenhuma peça fica seca e que a água atravessa todas as junções entre
+peças. É o mesmo teste que roda no GitHub Actions antes do export:
 
 ```bash
 godot --headless --path . --script tools/testar.gd
